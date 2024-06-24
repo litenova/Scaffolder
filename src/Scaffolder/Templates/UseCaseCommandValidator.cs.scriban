@@ -1,0 +1,16 @@
+using LiteBus.Commands.Abstractions;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+
+public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandValidator : ICommandPreHandler<{{ UseCase.Name }}{{ AggregateRoot.Name }}Command>
+{
+    public Task PreHandleAsync({{ UseCase.Name }}{{ AggregateRoot.Name }}Command command, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement validation logic here
+        // Example:
+        // if (command.Id == Guid.Empty)
+        //     throw new ValidationException("Id cannot be empty.");
+
+        return Task.CompletedTask;
+    }
+}

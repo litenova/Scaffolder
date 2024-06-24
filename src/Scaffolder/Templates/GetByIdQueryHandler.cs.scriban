@@ -1,0 +1,35 @@
+using LiteBus.Queries.Abstractions;
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
+
+internal sealed class Get{{ AggregateRoot.Name }}ByIdQueryHandler : IQueryHandler<Get{{ AggregateRoot.Name }}ByIdQuery, {{ AggregateRoot.Name }}QueryResult>
+{
+    {{~ if Options.UseGenericRepository ~}}
+    private readonly IRepository<{{ AggregateRoot.Name }}> _repository;
+
+    public Get{{ AggregateRoot.Name }}ByIdQueryHandler(IRepository<{{ AggregateRoot.Name }}> repository)
+    {
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+    }
+    {{~ else ~}}
+    private readonly I{{ AggregateRoot.Name }}Repository _repository;
+
+    public Get{{ AggregateRoot.Name }}ByIdQueryHandler(I{{ AggregateRoot.Name }}Repository repository)
+    {
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+    }
+    {{~ end ~}}
+
+    public async Task<{{ AggregateRoot.Name }}QueryResult> HandleAsync(Get{{ AggregateRoot.Name }}ByIdQuery message, CancellationToken cancellationToken = default)
+    {
+        var {{ AggregateRoot.Name.CamelCase }} = await _repository.GetAsync(message.Id, cancellationToken);
+
+        return new {{ AggregateRoot.Name }}QueryResult
+        {
+            {{~ for property in AggregateRoot.Properties ~}}
+            {{ property.Name.PascalCase }} = {{ AggregateRoot.Name.CamelCase }}.{{ property.Name.PascalCase }},
+            {{~ end ~}}
+        };
+    }
+}

@@ -1,0 +1,26 @@
+using System;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+
+/// <summary>
+/// Represents a request for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
+/// </summary>
+public class {{ UseCase.Name }}{{ AggregateRoot.Name }}Request
+{
+    /// <summary>
+    /// Gets or initializes the unique identifier of the {{ AggregateRoot.Name }}.
+    /// </summary>
+    public {{ AggregateRoot.IdType }} Id { get; init; }
+
+    {{~ if UseCase.Parameters.Count > 0 ~}}
+    {{~ for parameter in UseCase.Parameters ~}}
+    /// <summary>
+    /// Gets or initializes the {{ parameter.Name.Humanize }}.
+    /// </summary>
+    public {{ parameter.Type }} {{ parameter.Name.PascalCase }} { get; init; }
+
+    {{~ end ~}}
+    {{~ else ~}}
+    // TODO: Add additional request properties specific to this use case
+    {{~ end ~}}
+}

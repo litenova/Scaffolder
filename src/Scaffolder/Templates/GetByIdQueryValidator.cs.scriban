@@ -1,0 +1,16 @@
+using LiteBus.Queries.Abstractions;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+
+public class {{ UseCase.Name }}{{ AggregateRoot.Name }}QueryValidator : IQueryPreHandler<{{ UseCase.Name }}{{ AggregateRoot.Name }}Query>
+{
+    public Task PreHandleAsync({{ UseCase.Name }}{{ AggregateRoot.Name }}Query query, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement validation logic here
+        // Example:
+        // if (query.SomeProperty == default)
+        //     throw new ValidationException("SomeProperty must have a value.");
+
+        return Task.CompletedTask;
+    }
+}

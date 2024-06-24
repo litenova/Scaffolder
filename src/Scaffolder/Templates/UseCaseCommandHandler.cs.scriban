@@ -1,0 +1,34 @@
+using {{ DomainProject.Namespace }};
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+using LiteBus.Commands.Abstractions;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+
+public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommandHandler<{{ UseCase.Name }}{{ AggregateRoot.Name }}Command>
+{
+    {{~ if Options.UseGenericRepository ~}}
+    private readonly IRepository<{{ AggregateRoot.Name }}> _repository;
+
+    public {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler(IRepository<{{ AggregateRoot.Name }}> repository)
+    {{~ else ~}}
+    private readonly I{{ AggregateRoot.Name }}Repository _repository;
+
+    public {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler(I{{ AggregateRoot.Name }}Repository repository)
+    {{~ end ~}}
+    {
+        _repository = repository;
+    }
+
+    public async Task HandleAsync({{ UseCase.Name }}{{ AggregateRoot.Name }}Command command, CancellationToken cancellationToken = default)
+    {
+        var {{ AggregateRoot.Name.CamelCase }} = await _repository.GetAsync(command.Id, cancellationToken);
+
+        {{ AggregateRoot.Name.CamelCase }}.{{ UseCase.Name }}(
+            {{~ for parameter in UseCase.Parameters ~}}
+            {{~ if !for.first ~}}, {{~ end ~}}command.{{ parameter.Name.PascalCase }}
+            {{~ end ~}}
+        );
+
+        await _repository.UpdateAsync({{ AggregateRoot.Name.CamelCase }}, cancellationToken);
+    }
+}

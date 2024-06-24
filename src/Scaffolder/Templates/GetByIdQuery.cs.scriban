@@ -1,0 +1,8 @@
+using LiteBus.Queries.Abstractions;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
+
+public sealed class Get{{ AggregateRoot.Name }}ByIdQuery : IQuery<{{ AggregateRoot.Name }}QueryResult>
+{
+    public required Guid Id { get; init; }
+}

@@ -1,0 +1,10 @@
+using LiteBus.Commands.Abstractions;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+
+public sealed class {{ UseCase.Name }}{{ AggregateRoot.Name }}Command : ICommand
+{
+    {{~ for parameter in UseCase.Parameters ~}}
+    public {{ parameter.Type }} {{ parameter.Name.PascalCase }} { get; init; }
+    {{~ end ~}}
+}

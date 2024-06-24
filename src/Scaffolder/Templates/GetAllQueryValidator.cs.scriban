@@ -1,0 +1,16 @@
+using LiteBus.Queries.Abstractions;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
+
+public class GetAll{{ AggregateRoot.Name.Plural }}QueryValidator : IQueryPreHandler<GetAll{{ AggregateRoot.Name.Plural }}Query>
+{
+    public Task PreHandleAsync(GetAll{{ AggregateRoot.Name.Plural }}Query query, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement validation logic here if needed
+        // Example:
+        // if (query.PageSize.HasValue && query.PageSize.Value <= 0)
+        //     throw new ValidationException("Page size must be greater than zero.");
+
+        return Task.CompletedTask;
+    }
+}

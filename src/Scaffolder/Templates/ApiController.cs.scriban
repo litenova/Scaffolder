@@ -1,0 +1,130 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
+using LiteBus.Commands.Abstractions;
+using LiteBus.Queries.Abstractions;
+
+namespace {{ ApplicationProject.Namespace }}.Controllers;
+
+/// <summary>
+/// Controller for managing {{ AggregateRoot.Name.Plural }}.
+/// </summary>
+[ApiController]
+[Route("api/[controller]")]
+public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
+{
+    private readonly ICommandMediator _commandMediator;
+    private readonly IQueryMediator _queryMediator;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="{{ AggregateRoot.Name.Plural }}Controller"/> class.
+    /// </summary>
+    /// <param name="commandMediator">The command mediator.</param>
+    /// <param name="queryMediator">The query mediator.</param>
+    public {{ AggregateRoot.Name.Plural }}Controller(ICommandMediator commandMediator, IQueryMediator queryMediator)
+    {
+        _commandMediator = commandMediator;
+        _queryMediator = queryMediator;
+    }
+
+    /// <summary>
+    /// Creates a new {{ AggregateRoot.Name }}.
+    /// </summary>
+    /// <param name="request">The creation request.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The created {{ AggregateRoot.Name }}.</returns>
+    [HttpPost(Name = "Create{{ AggregateRoot.Name }}")]
+    [SwaggerOperation(Summary = "Create a new {{ AggregateRoot.Name }}", Description = "Creates a new {{ AggregateRoot.Name }} with the provided details.")]
+    [SwaggerResponse(201, "The {{ AggregateRoot.Name }} was successfully created.", typeof(Create{{ AggregateRoot.Name }}ResponseModel))]
+    [SwaggerResponse(400, "The request was invalid.")]
+    public async Task<Create{{ AggregateRoot.Name }}ResponseModel> Create([FromBody] Create{{ AggregateRoot.Name }}Request request, CancellationToken cancellationToken)
+    {
+        var command = new Create{{ AggregateRoot.Name }}Command
+        {
+            {{~ for property in AggregateRoot.Properties ~}}
+            {{~ if property.Name != "Id" ~}}
+            {{ property.Name.PascalCase }} = request.{{ property.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
+        };
+
+        var result = await _commandMediator.SendAsync(command, cancellationToken);
+        return result;
+    }
+
+    /// <summary>
+    /// Retrieves a specific {{ AggregateRoot.Name }} by its identifier.
+    /// </summary>
+    /// <param name="id">The {{ AggregateRoot.Name }} identifier.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The requested {{ AggregateRoot.Name }}.</returns>
+    [HttpGet("{id}", Name = "Get{{ AggregateRoot.Name }}ById")]
+    [SwaggerOperation(Summary = "Get a specific {{ AggregateRoot.Name }}", Description = "Retrieves a {{ AggregateRoot.Name }} by its unique identifier.")]
+    [SwaggerResponse(200, "The {{ AggregateRoot.Name }} was successfully retrieved.", typeof({{ AggregateRoot.Name }}ResponseModel))]
+    [SwaggerResponse(404, "The {{ AggregateRoot.Name }} was not found.")]
+    public async Task<{{ AggregateRoot.Name }}ResponseModel> GetById([FromRoute] {{ AggregateRoot.IdType }} id, CancellationToken cancellationToken)
+    {
+        var query = new Get{{ AggregateRoot.Name }}ByIdQuery { Id = id };
+        var result = await _queryMediator.QueryAsync(query, cancellationToken);
+        return result;
+    }
+
+    /// <summary>
+    /// Retrieves all {{ AggregateRoot.Name.Plural }}.
+    /// </summary>
+    /// <param name="request">The retrieval request.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A collection of {{ AggregateRoot.Name.Plural }}.</returns>
+    [HttpGet(Name = "GetAll{{ AggregateRoot.Name.Plural }}")]
+    [SwaggerOperation(Summary = "Get all {{ AggregateRoot.Name.Plural }}", Description = "Retrieves all {{ AggregateRoot.Name.Plural }} with optional pagination.")]
+    [SwaggerResponse(200, "The {{ AggregateRoot.Name.Plural }} were successfully retrieved.", typeof(IAsyncEnumerable<{{ AggregateRoot.Name }}ResponseModel>))]
+    public IAsyncEnumerable<{{ AggregateRoot.Name }}ResponseModel> GetAll([FromQuery] GetAll{{ AggregateRoot.Name.Plural }}Request request, CancellationToken cancellationToken)
+    {
+        var query = new GetAll{{ AggregateRoot.Name.Plural }}Query
+        {
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            SortBy = request.SortBy,
+            SortDescending = request.SortDescending
+        };
+
+        return _queryMediator.StreamAsync<{{ AggregateRoot.Name }}ResponseModel>(query, cancellationToken);
+    }
+
+    {{~ for useCase in UseCases ~}}
+    {{~ if useCase.Name != "Create" && useCase.Name != "GetById" && useCase.Name != "GetAll" ~}}
+    /// <summary>
+    /// {{ useCase.Name.Humanize }} a {{ AggregateRoot.Name }}.
+    /// </summary>
+    /// <param name="id">The {{ AggregateRoot.Name }} identifier.</param>
+    /// <param name="request">The {{ useCase.Name.Humanize }} request.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The result of the {{ useCase.Name.Humanize }} operation.</returns>
+    [HttpPatch("{id}/{{ useCase.Name.Kebabcase }}", Name = "{{ useCase.Name }}{{ AggregateRoot.Name }}")]
+    [SwaggerOperation(Summary = "{{ useCase.Name.Humanize }} a {{ AggregateRoot.Name }}", Description = "{{ useCase.Name.Humanize }} a {{ AggregateRoot.Name }} with the provided details.")]
+    [SwaggerResponse(200, "The operation was successful.", typeof({{ useCase.Name }}{{ AggregateRoot.Name }}ResponseModel))]
+    [SwaggerResponse(400, "The request was invalid.")]
+    public async Task<{{ useCase.Name }}{{ AggregateRoot.Name }}ResponseModel> {{ useCase.Name }}([FromRoute] {{ AggregateRoot.IdType }} id, [FromBody] {{ useCase.Name }}{{ AggregateRoot.Name }}Request request, CancellationToken cancellationToken)
+    {
+        var command = new {{ useCase.Name }}{{ AggregateRoot.Name }}Command
+        {
+            Id = id,
+            {{~ for parameter in useCase.Parameters ~}}
+            {{ parameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }},
+            {{~ end ~}}
+        };
+
+        var result = await _commandMediator.SendAsync(command, cancellationToken);
+        return result;
+    }
+
+    {{~ end ~}}
+    {{~ end ~}}
+}
