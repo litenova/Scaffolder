@@ -1,4 +1,5 @@
 using Scaffolder.Abstracts;
+using Scaffolder.Utilities;
 
 namespace Scaffolder.Internal.Generators;
 
@@ -18,6 +19,7 @@ public sealed class ApiControllerCodeGenerator : ICodeGenerator
             {
                 context.AggregateRoot,
                 context.ApplicationProject,
+                context.WebApiProject,
                 context.AggregateRoot.UseCases
             },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, $"{context.AggregateRoot.Name.Plural}Controller.cs"))

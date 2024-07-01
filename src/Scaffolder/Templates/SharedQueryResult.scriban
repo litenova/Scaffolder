@@ -9,16 +9,20 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Sha
 public class {{ AggregateRoot.Name }}QueryResult
 {
     /// <summary>
-    /// Gets or sets the unique identifier of the {{ AggregateRoot.Name }}.
+    /// Gets the unique identifier of the {{ AggregateRoot.Name }}.
     /// </summary>
     public required {{ AggregateRoot.IdType }} Id { get; init; }
 
     {{ for property in AggregateRoot.Properties }}
     {{ if property.Name.Original != "Id" }}
     /// <summary>
-    /// Gets or sets the {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
+    /// Gets the {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
     /// </summary>
-    public {{ if !property.IsRequired }}{{ property.Type }}?{{ else }}required {{ property.Type }}{{ end }} {{ property.Name.PascalCase }} { get; init; }
+    {{ if property.IsRequired }}
+    public required {{ property.Type }} {{ property.Name.PascalCase }} { get; init; }
+    {{ else }}
+    public {{ property.Type }}? {{ property.Name.PascalCase }} { get; init; }
+    {{ end }}
     {{ end }}
     {{ end }}
 }
@@ -32,9 +36,13 @@ public class {{ property.Name.PascalCase }}QueryResult
 {
     {{ for nestedProperty in property.NestedProperties }}
     /// <summary>
-    /// Gets or sets the {{ nestedProperty.Name.Humanize }} of the {{ property.Name.Humanize }}.
+    /// Gets the {{ nestedProperty.Name.Humanize }} of the {{ property.Name.Humanize }}.
     /// </summary>
-    public {{ if !nestedProperty.IsRequired }}{{ nestedProperty.Type }}?{{ else }}required {{ nestedProperty.Type }}{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }
+    {{ if nestedProperty.IsRequired }}
+    public required {{ nestedProperty.Type }} {{ nestedProperty.Name.PascalCase }} { get; init; }
+    {{ else }}
+    public {{ nestedProperty.Type }}? {{ nestedProperty.Name.PascalCase }} { get; init; }
+    {{ end }}
     {{ end }}
 }
 {{ end }}

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
@@ -8,32 +9,39 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Cre
 public class Create{{ AggregateRoot.Name }}Request
 {
     {{~ func GenerateProperties
-        for property in $0
-            if property.Name != "Id"
-                if property.IsComplex
-    ~}}
+    for property in $0
+        if property.Name != "Id"
+            if property.IsComplex ~}}
     /// <summary>
-    /// Gets or sets the {{ property.Name.Humanize }}.
+    /// Gets or initializes the {{ property.Name.Humanize }}.
     /// </summary>
-    public Create{{ property.Name.PascalCase }}RequestModel {{ property.Name.PascalCase }} { get; set; }
-    {{~         else
-    ~}}
+    [Required]
+    public Create{{ property.Name.PascalCase }}RequestModel {{ property.Name.PascalCase }} { get; init; } = null!;
+            {{~ else ~}}
     /// <summary>
-    /// Gets or sets the {{ property.Name.Humanize }}.
+    /// Gets or initializes the {{ property.Name.Humanize }}.
     /// </summary>
-    public {{ property.Type }} {{ property.Name.PascalCase }} { get; set; }
-    {{~         end
-            end
+    {{~ if property.IsRequired ~}}
+    [Required]
+    public required {{ property.Type }} {{ property.Name.PascalCase }} { get; init; }
+    {{~ else ~}}
+    public {{ property.Type }}? {{ property.Name.PascalCase }} { get; init; }
+    {{~ end ~}}
+            {{~ end
         end
+    end
     end ~}}
     {{ GenerateProperties AggregateRoot.Properties }}
 }
 
-{{~ for property in AggregateRoot.Properties
-    if property.IsComplex
-~}}
+{{~ for property in AggregateRoot.Properties ~}}
+{{~ if property.IsComplex ~}}
+/// <summary>
+/// Represents the {{ property.Name.Humanize }} request model for creating a {{ AggregateRoot.Name }}.
+/// </summary>
 public class Create{{ property.Name.PascalCase }}RequestModel
 {
     {{ GenerateProperties property.NestedProperties }}
 }
+{{~ end ~}}
 {{~ end ~}}

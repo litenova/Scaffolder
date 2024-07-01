@@ -1,0 +1,41 @@
+using System;
+using System.Collections.Generic;
+
+namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Shared;
+
+/// <summary>
+/// Represents the response model for {{ AggregateRoot.Name }} operations.
+/// </summary>
+public class {{ AggregateRoot.Name }}ResponseModel
+{
+    /// <summary>
+    /// Gets or initializes the unique identifier of the {{ AggregateRoot.Name }}.
+    /// </summary>
+    public required {{ AggregateRoot.IdType }} Id { get; init; }
+
+    {{~ for property in AggregateRoot.Properties ~}}
+    {{~ if property.Name.Original != "Id" ~}}
+    /// <summary>
+    /// Gets or initializes the {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
+    /// </summary>
+    public {{ if !property.IsRequired }}{{ property.Type }}?{{ else }}required {{ property.Type }}{{ end }} {{ property.Name.PascalCase }} { get; init; }
+    {{~ end ~}}
+    {{~ end ~}}
+}
+
+{{~ for property in AggregateRoot.Properties ~}}
+{{~ if property.IsComplex ~}}
+/// <summary>
+/// Represents the {{ property.Name.Humanize }} of a {{ AggregateRoot.Name }}.
+/// </summary>
+public class {{ property.Name.PascalCase }}ResponseModel
+{
+    {{~ for nestedProperty in property.NestedProperties ~}}
+    /// <summary>
+    /// Gets or initializes the {{ nestedProperty.Name.Humanize }} of the {{ property.Name.Humanize }}.
+    /// </summary>
+    public {{ if !nestedProperty.IsRequired }}{{ nestedProperty.Type }}?{{ else }}required {{ nestedProperty.Type }}{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }
+    {{~ end ~}}
+}
+{{~ end ~}}
+{{~ end ~}}
