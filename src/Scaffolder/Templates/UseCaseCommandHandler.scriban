@@ -24,9 +24,21 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommand
         var {{ AggregateRoot.Name.CamelCase }} = await _repository.GetAsync(command.Id, cancellationToken);
 
         {{ AggregateRoot.Name.CamelCase }}.{{ UseCase.Name }}(
-            {{~ for parameter in UseCase.Parameters ~}}
-            {{~ if !for.first ~}}, {{~ end ~}}command.{{ parameter.Name.PascalCase }}
-            {{~ end ~}}
+            {{~ func MapParameters
+                for parameter in $0
+                    if parameter.IsComplex
+            ~}}
+            new {{ parameter.Type }}
+            {
+                {{ MapParameters parameter.NestedParameters | string.indent 4 }}
+            }{{~ if !for.last ~}},{{~ end ~}}
+            {{~     else
+            ~}}
+            command.{{ parameter.Name.PascalCase }}{{~ if !for.last ~}},{{~ end ~}}
+            {{~     end
+                end
+            end ~}}
+            {{ MapParameters UseCase.Parameters }}
         );
 
         await _repository.UpdateAsync({{ AggregateRoot.Name.CamelCase }}, cancellationToken);

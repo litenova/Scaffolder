@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +9,14 @@ using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
+{{~ for useCase in UseCases ~}}
+{{~ if useCase.Name != "Create" && useCase.Name != "GetById" && useCase.Name != "GetAll" ~}}
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ useCase.Name }};
+{{~ end ~}}
+{{~ end ~}}
 using LiteBus.Commands.Abstractions;
 using LiteBus.Queries.Abstractions;
+using System.Linq.Async;
 
 namespace {{ ApplicationProject.Namespace }}.Controllers;
 
@@ -39,24 +46,36 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// </summary>
     /// <param name="request">The creation request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The created {{ AggregateRoot.Name }}.</returns>
+    /// <returns>The created {{ AggregateRoot.Name }} ID.</returns>
     [HttpPost(Name = "Create{{ AggregateRoot.Name }}")]
     [SwaggerOperation(Summary = "Create a new {{ AggregateRoot.Name }}", Description = "Creates a new {{ AggregateRoot.Name }} with the provided details.")]
-    [SwaggerResponse(201, "The {{ AggregateRoot.Name }} was successfully created.", typeof(Create{{ AggregateRoot.Name }}ResponseModel))]
+    [SwaggerResponse(201, "The {{ AggregateRoot.Name }} was successfully created.", typeof(Create{{ AggregateRoot.Name }}Result))]
     [SwaggerResponse(400, "The request was invalid.")]
-    public async Task<Create{{ AggregateRoot.Name }}ResponseModel> Create([FromBody] Create{{ AggregateRoot.Name }}Request request, CancellationToken cancellationToken)
+    public async Task<ActionResult<Create{{ AggregateRoot.Name }}Result>> Create([FromBody] Create{{ AggregateRoot.Name }}Request request, CancellationToken cancellationToken)
     {
         var command = new Create{{ AggregateRoot.Name }}Command
         {
-            {{~ for property in AggregateRoot.Properties ~}}
-            {{~ if property.Name != "Id" ~}}
+            {{~ func MapProperties
+                for property in $0
+                    if property.Name != "Id"
+                        if property.IsComplex
+            ~}}
+            {{ property.Name.PascalCase }} = new {{ property.Type }}
+            {
+                {{ MapProperties property.NestedProperties | string.indent 4 }}
+            },
+            {{~         else
+            ~}}
             {{ property.Name.PascalCase }} = request.{{ property.Name.PascalCase }},
-            {{~ end ~}}
-            {{~ end ~}}
+            {{~         end
+                    end
+                end
+            end ~}}
+            {{ MapProperties AggregateRoot.Properties }}
         };
 
         var result = await _commandMediator.SendAsync(command, cancellationToken);
-        return result;
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     /// <summary>
@@ -69,11 +88,24 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     [SwaggerOperation(Summary = "Get a specific {{ AggregateRoot.Name }}", Description = "Retrieves a {{ AggregateRoot.Name }} by its unique identifier.")]
     [SwaggerResponse(200, "The {{ AggregateRoot.Name }} was successfully retrieved.", typeof({{ AggregateRoot.Name }}ResponseModel))]
     [SwaggerResponse(404, "The {{ AggregateRoot.Name }} was not found.")]
-    public async Task<{{ AggregateRoot.Name }}ResponseModel> GetById([FromRoute] {{ AggregateRoot.IdType }} id, CancellationToken cancellationToken)
+    public async Task<ActionResult<{{ AggregateRoot.Name }}ResponseModel>> GetById([FromRoute] {{ AggregateRoot.IdType }} id, CancellationToken cancellationToken)
     {
         var query = new Get{{ AggregateRoot.Name }}ByIdQuery { Id = id };
         var result = await _queryMediator.QueryAsync(query, cancellationToken);
-        return result;
+        
+        if (result == null)
+        {
+            return NotFound();
+        }
+
+        var responseModel = new {{ AggregateRoot.Name }}ResponseModel
+        {
+            {{~ for property in AggregateRoot.Properties ~}}
+            {{ property.Name.PascalCase }} = result.{{ property.Name.PascalCase }},
+            {{~ end ~}}
+        };
+
+        return Ok(responseModel);
     }
 
     /// <summary>
@@ -95,7 +127,12 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
             SortDescending = request.SortDescending
         };
 
-        return _queryMediator.StreamAsync<{{ AggregateRoot.Name }}ResponseModel>(query, cancellationToken);
+        return _queryMediator.StreamAsync<{{ AggregateRoot.Name }}, {{ AggregateRoot.Name }}ResponseModel>(query, cancellationToken, result => new {{ AggregateRoot.Name }}ResponseModel
+        {
+            {{~ for property in AggregateRoot.Properties ~}}
+            {{ property.Name.PascalCase }} = result.{{ property.Name.PascalCase }},
+            {{~ end ~}}
+        });
     }
 
     {{~ for useCase in UseCases ~}}
@@ -109,20 +146,33 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <returns>The result of the {{ useCase.Name.Humanize }} operation.</returns>
     [HttpPatch("{id}/{{ useCase.Name.Kebabcase }}", Name = "{{ useCase.Name }}{{ AggregateRoot.Name }}")]
     [SwaggerOperation(Summary = "{{ useCase.Name.Humanize }} a {{ AggregateRoot.Name }}", Description = "{{ useCase.Name.Humanize }} a {{ AggregateRoot.Name }} with the provided details.")]
-    [SwaggerResponse(200, "The operation was successful.", typeof({{ useCase.Name }}{{ AggregateRoot.Name }}ResponseModel))]
+    [SwaggerResponse(204, "The operation was successful.")]
     [SwaggerResponse(400, "The request was invalid.")]
-    public async Task<{{ useCase.Name }}{{ AggregateRoot.Name }}ResponseModel> {{ useCase.Name }}([FromRoute] {{ AggregateRoot.IdType }} id, [FromBody] {{ useCase.Name }}{{ AggregateRoot.Name }}Request request, CancellationToken cancellationToken)
+    [SwaggerResponse(404, "The {{ AggregateRoot.Name }} was not found.")]
+    public async Task<IActionResult> {{ useCase.Name }}([FromRoute] {{ AggregateRoot.IdType }} id, [FromBody] {{ useCase.Name }}{{ AggregateRoot.Name }}Request request, CancellationToken cancellationToken)
     {
         var command = new {{ useCase.Name }}{{ AggregateRoot.Name }}Command
         {
             Id = id,
-            {{~ for parameter in useCase.Parameters ~}}
+            {{~ func MapParameters
+                for parameter in $0
+                    if parameter.IsComplex
+            ~}}
+            {{ parameter.Name.PascalCase }} = new {{ parameter.Type }}
+            {
+                {{ MapParameters parameter.NestedParameters | string.indent 4 }}
+            },
+            {{~     else
+            ~}}
             {{ parameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }},
-            {{~ end ~}}
+            {{~     end
+                end
+            end ~}}
+            {{ MapParameters useCase.Parameters }}
         };
 
-        var result = await _commandMediator.SendAsync(command, cancellationToken);
-        return result;
+        await _commandMediator.SendAsync(command, cancellationToken);
+        return NoContent();
     }
 
     {{~ end ~}}

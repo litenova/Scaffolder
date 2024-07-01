@@ -1,4 +1,4 @@
-using Scaffolder.Descriptors;
+using Scaffolder.Internal.Descriptors;
 
 namespace Scaffolder.Abstracts;
 
@@ -31,4 +31,9 @@ public sealed class CodeGenerationContext
     /// The options for code generation.
     /// </summary>
     public required CodeGenerationOptions Options { get; init; }
+
+    /// <summary>
+    /// The solution
+    /// </summary>
+    public required SolutionDescriptor Solution { get; set; }
 }

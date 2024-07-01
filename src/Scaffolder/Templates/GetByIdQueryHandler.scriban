@@ -1,0 +1,60 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using LiteBus.Queries.Abstractions;
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
+using Microsoft.Extensions.Logging;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
+
+/// <summary>
+/// Handles the retrieval of a {{ AggregateRoot.Name }} by its identifier.
+/// </summary>
+public class Get{{ AggregateRoot.Name }}ByIdQueryHandler : IQueryHandler<Get{{ AggregateRoot.Name }}ByIdQuery, {{ AggregateRoot.Name }}QueryResult>
+{
+    private readonly {{ if Options.UseGenericRepository }}IRepository<{{ AggregateRoot.Name }}>{{ else }}I{{ AggregateRoot.Name }}Repository{{ end }} _repository;
+    private readonly ILogger<Get{{ AggregateRoot.Name }}ByIdQueryHandler> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Get{{ AggregateRoot.Name }}ByIdQueryHandler"/> class.
+    /// </summary>
+    /// <param name="repository">The repository used to retrieve the {{ AggregateRoot.Name }}.</param>
+    /// <param name="logger">The logger used for logging.</param>
+    public Get{{ AggregateRoot.Name }}ByIdQueryHandler(
+        {{ if Options.UseGenericRepository }}IRepository<{{ AggregateRoot.Name }}>{{ else }}I{{ AggregateRoot.Name }}Repository{{ end }} repository,
+        ILogger<Get{{ AggregateRoot.Name }}ByIdQueryHandler> logger)
+    {
+        _repository = repository;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Handles the Get{{ AggregateRoot.Name }}ByIdQuery and returns the corresponding {{ AggregateRoot.Name }}QueryResult.
+    /// </summary>
+    /// <param name="query">The query containing the identifier of the {{ AggregateRoot.Name }} to retrieve.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation, containing the {{ AggregateRoot.Name }}QueryResult.</returns>
+    public async Task<{{ AggregateRoot.Name }}QueryResult> HandleAsync(Get{{ AggregateRoot.Name }}ByIdQuery query, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Retrieving {{ AggregateRoot.Name }} with ID: {Id}", query.Id);
+
+        var entity = await _repository.GetByIdAsync(query.Id, cancellationToken);
+
+        _logger.LogInformation("Successfully retrieved {{ AggregateRoot.Name }} with ID: {Id}", query.Id);
+
+        return new {{ AggregateRoot.Name }}QueryResult
+        {
+            Id = entity.Id,
+            {{ for property in AggregateRoot.Properties }}
+            {{ if property.Name.Original != "Id" }}
+            {{ property.Name.PascalCase }} = {{ if property.IsComplex }}new {{ property.Name.PascalCase }}QueryResult
+            {
+                {{ for nestedProperty in property.NestedProperties }}
+                {{ nestedProperty.Name.PascalCase }} = entity.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
+                {{ end }}
+            }{{ else }}entity.{{ property.Name.PascalCase }}{{ end }},
+            {{ end }}
+            {{ end }}
+        };
+    }
+}

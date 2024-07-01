@@ -1,21 +1,20 @@
-using System.Collections;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scaffolder.Utilities;
 
-namespace Scaffolder.Descriptors;
+namespace Scaffolder.Internal.Descriptors;
 
 /// <summary>
 /// Represents a project descriptor that provides access to aggregate root descriptors.
 /// </summary>
-/// <remarks>
-/// This class implements IReadOnlyList<AggregateRootDescriptor> to allow easy enumeration of aggregate roots.
-/// </remarks>
-public sealed class ProjectDescriptor : IReadOnlyList<AggregateRootDescriptor>
+public sealed class ProjectDescriptor
 {
+    // ReSharper disable once NotAccessedField.Local
     private readonly ILogger _logger;
-    private readonly ImmutableArray<AggregateRootDescriptor> _aggregateRoots;
+
+    public ImmutableArray<AggregateRootDescriptor> AggregateRoots { get; }
 
     /// <summary>
     /// Gets the name of the project.
@@ -30,24 +29,12 @@ public sealed class ProjectDescriptor : IReadOnlyList<AggregateRootDescriptor>
     /// <summary>
     /// Gets the directory containing the project file.
     /// </summary>
-    public DirectoryInfo Directory { get; init; }
+    public DirectoryInfo Directory { get; }
 
     /// <summary>
     /// Gets the namespace of the project.
     /// </summary>
     public string Namespace { get; }
-
-    /// <summary>
-    /// Gets the number of aggregate roots in the project.
-    /// </summary>
-    public int Count => _aggregateRoots.Length;
-
-    /// <summary>
-    /// Gets the aggregate root descriptor at the specified index.
-    /// </summary>
-    /// <param name="index">The zero-based index of the aggregate root descriptor to get.</param>
-    /// <returns>The aggregate root descriptor at the specified index.</returns>
-    public AggregateRootDescriptor this[int index] => _aggregateRoots[index];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectDescriptor"/> class.
@@ -64,34 +51,24 @@ public sealed class ProjectDescriptor : IReadOnlyList<AggregateRootDescriptor>
         File = file;
         Directory = directory;
         Namespace = @namespace;
-        _aggregateRoots = aggregateRoots;
+        AggregateRoots = aggregateRoots;
         _logger = logger;
     }
-
-    /// <summary>
-    /// Returns an enumerator that iterates through the aggregate root descriptors.
-    /// </summary>
-    /// <returns>An enumerator for the aggregate root descriptors.</returns>
-    public IEnumerator<AggregateRootDescriptor> GetEnumerator() => _aggregateRoots.AsEnumerable().GetEnumerator();
-
-    /// <summary>
-    /// Returns an enumerator that iterates through the aggregate root descriptors.
-    /// </summary>
-    /// <returns>An enumerator for the aggregate root descriptors.</returns>
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>
     /// Asynchronously loads a project descriptor from the specified Microsoft.CodeAnalysis.Project.
     /// </summary>
     /// <param name="project">The Microsoft.CodeAnalysis.Project to load from.</param>
     /// <param name="logger">The logger instance.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the loaded <see cref="ProjectDescriptor"/>.</returns>
     /// <exception cref="InvalidOperationException">Thrown when unable to get compilation, determine project file path or directory.</exception>
-    public static async Task<ProjectDescriptor> LoadAsync(Microsoft.CodeAnalysis.Project project, ILogger logger)
+    public static async Task<ProjectDescriptor> LoadAsync(Microsoft.CodeAnalysis.Project project, ILogger? logger = null, CancellationToken cancellationToken = default)
     {
+        logger ??= NullLogger.Instance;
         logger.LogInformation("Loading project: {ProjectName}", project.Name);
 
-        var compilation = await project.GetCompilationAsync();
+        var compilation = await project.GetCompilationAsync(cancellationToken);
         if (compilation is null)
         {
             logger.LogError("Failed to get compilation for project: {ProjectName}", project.Name);
@@ -102,24 +79,27 @@ public sealed class ProjectDescriptor : IReadOnlyList<AggregateRootDescriptor>
         var projectDirectory = projectFileInfo.Directory ?? throw new InvalidOperationException("Unable to determine project directory.");
 
         logger.LogInformation("Searching for aggregate roots in project: {ProjectName}", project.Name);
+
         var aggregateRoots = await Task.WhenAll(
             compilation.SyntaxTrees.Select(async tree =>
             {
-                var root = await tree.GetRootAsync();
+                var semanticModel = compilation.GetSemanticModel(tree);
+                var root = await tree.GetRootAsync(cancellationToken);
                 var sourceFileInfo = new FileInfo(tree.FilePath);
                 var sourceDirectory = sourceFileInfo.Directory ?? projectDirectory;
+
                 return root.DescendantNodes()
                     .OfType<ClassDeclarationSyntax>()
                     .Where(IsAggregateRoot)
-                    .Select(cd => AggregateRootDescriptor.FromSyntax(cd, sourceFileInfo, sourceDirectory, logger));
+                    .Select(classDeclarationSyntax =>
+                        AggregateRootDescriptor.FromSyntax(classDeclarationSyntax, semanticModel, sourceFileInfo, sourceDirectory, logger));
             }));
 
         var flattenedAggregateRoots = aggregateRoots.SelectMany(x => x).ToImmutableArray();
-
         logger.LogInformation("Found {AggregateRootCount} aggregate roots in project: {ProjectName}", flattenedAggregateRoots.Length, project.Name);
 
         // Determine the project namespace (you might want to adjust this logic based on your project structure)
-        string projectNamespace = project.DefaultNamespace ?? project.Name;
+        var projectNamespace = project.DefaultNamespace ?? project.Name;
 
         return new ProjectDescriptor(project.Name, projectFileInfo, projectDirectory, projectNamespace, flattenedAggregateRoots, logger);
     }
@@ -129,6 +109,8 @@ public sealed class ProjectDescriptor : IReadOnlyList<AggregateRootDescriptor>
     /// </summary>
     /// <param name="classDeclaration">The class declaration to check.</param>
     /// <returns>True if the class is an aggregate root, false otherwise.</returns>
-    private static bool IsAggregateRoot(ClassDeclarationSyntax classDeclaration) =>
-        classDeclaration.BaseList?.Types.Any(t => t.ToString() == "AggregateRoot") ?? false;
+    private static bool IsAggregateRoot(ClassDeclarationSyntax classDeclaration)
+    {
+        return classDeclaration.BaseList?.Types.Any(t => t.ToString() == "AggregateRoot") ?? false;
+    }
 }

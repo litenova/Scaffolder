@@ -1,11 +1,11 @@
 using Scaffolder.Abstracts;
 
-namespace Scaffolder.Providers.GeneralCommand;
+namespace Scaffolder.Internal.Generators;
 
 /// <summary>
-/// Provides specifications for generating command-related code.
+/// Provides specifications for generating command-related code for use cases.
 /// </summary>
-public class UseCaseCommandSpecificationProvider : ICodeGenerator
+public sealed class UseCaseCommandCodeGenerator : ICodeGenerator
 {
     public IEnumerable<CodeGenerationSpecification> Generate(CodeGenerationContext context)
     {
@@ -16,21 +16,38 @@ public class UseCaseCommandSpecificationProvider : ICodeGenerator
             yield return new CodeGenerationSpecification
             {
                 TemplateName = "Command",
-                TemplateModel = new { context.AggregateRoot, UseCase = useCase },
+                TemplateModel = new
+                {
+                    context.ApplicationProject,
+                    context.AggregateRoot,
+                    UseCase = useCase
+                },
                 OutputFile = new FileInfo(Path.Combine(outputDirectory, $"{useCase.Name}{context.AggregateRoot.Name}Command.cs"))
             };
 
             yield return new CodeGenerationSpecification
             {
                 TemplateName = "CommandHandler",
-                TemplateModel = new { context.AggregateRoot, UseCase = useCase, context.Options },
+                TemplateModel = new
+                {
+                    DomainProject = context.ApplicationProject,
+                    context.ApplicationProject,
+                    context.AggregateRoot,
+                    UseCase = useCase,
+                    context.Options
+                },
                 OutputFile = new FileInfo(Path.Combine(outputDirectory, $"{useCase.Name}{context.AggregateRoot.Name}CommandHandler.cs"))
             };
 
             yield return new CodeGenerationSpecification
             {
                 TemplateName = "CommandValidator",
-                TemplateModel = new { context.AggregateRoot, UseCase = useCase },
+                TemplateModel = new
+                {
+                    context.ApplicationProject,
+                    context.AggregateRoot,
+                    UseCase = useCase
+                },
                 OutputFile = new FileInfo(Path.Combine(outputDirectory, $"{useCase.Name}{context.AggregateRoot.Name}CommandValidator.cs"))
             };
         }

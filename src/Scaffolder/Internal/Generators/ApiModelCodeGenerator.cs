@@ -1,11 +1,11 @@
 using Scaffolder.Abstracts;
 
-namespace Scaffolder.Providers.ApiModels;
+namespace Scaffolder.Internal.Generators;
 
 /// <summary>
 /// Provides specifications for generating request/response model code.
 /// </summary>
-public class ApiModelSpecificationProvider : ICodeGenerator
+public sealed class ApiModelCodeGenerator : ICodeGenerator
 {
     public IEnumerable<CodeGenerationSpecification> Generate(CodeGenerationContext context)
     {
@@ -19,14 +19,22 @@ public class ApiModelSpecificationProvider : ICodeGenerator
             OutputFile = new FileInfo(Path.Combine(outputDirectory, $"{context.AggregateRoot.Name}ResponseModel.cs"))
         };
 
-        foreach (var useCase in context.AggregateRoot.UseCases)
+        // Create request model
+        yield return new CodeGenerationSpecification
+        {
+            TemplateName = "CreateRequestModel",
+            TemplateModel = new { context.AggregateRoot, context.ApplicationProject },
+            OutputFile = new FileInfo(Path.Combine(outputDirectory, "Create", $"Create{context.AggregateRoot.Name}Request.cs"))
+        };
+
+        foreach (var useCase in context.AggregateRoot.UseCases.Where(uc => uc.Name != "Create"))
         {
             var useCaseDirectory = Path.Combine(outputDirectory, useCase.Name);
 
             yield return new CodeGenerationSpecification
             {
                 TemplateName = "RequestModel",
-                TemplateModel = new { context.AggregateRoot, UseCase = useCase },
+                TemplateModel = new { context.AggregateRoot, UseCase = useCase, context.ApplicationProject },
                 OutputFile = new FileInfo(Path.Combine(useCaseDirectory, $"{useCase.Name}{context.AggregateRoot.Name}Request.cs"))
             };
 

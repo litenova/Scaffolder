@@ -1,0 +1,41 @@
+using System;
+using System.Collections.Generic;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
+
+/// <summary>
+/// Represents the query result for {{ AggregateRoot.Name }} operations.
+/// </summary>
+public class {{ AggregateRoot.Name }}QueryResult
+{
+    /// <summary>
+    /// Gets or sets the unique identifier of the {{ AggregateRoot.Name }}.
+    /// </summary>
+    public required {{ AggregateRoot.IdType }} Id { get; init; }
+
+    {{ for property in AggregateRoot.Properties }}
+    {{ if property.Name.Original != "Id" }}
+    /// <summary>
+    /// Gets or sets the {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
+    /// </summary>
+    public {{ if !property.IsRequired }}{{ property.Type }}?{{ else }}required {{ property.Type }}{{ end }} {{ property.Name.PascalCase }} { get; init; }
+    {{ end }}
+    {{ end }}
+}
+
+{{ for property in AggregateRoot.Properties }}
+{{ if property.IsComplex }}
+/// <summary>
+/// Represents the {{ property.Name.Humanize }} of a {{ AggregateRoot.Name }}.
+/// </summary>
+public class {{ property.Name.PascalCase }}QueryResult
+{
+    {{ for nestedProperty in property.NestedProperties }}
+    /// <summary>
+    /// Gets or sets the {{ nestedProperty.Name.Humanize }} of the {{ property.Name.Humanize }}.
+    /// </summary>
+    public {{ if !nestedProperty.IsRequired }}{{ nestedProperty.Type }}?{{ else }}required {{ nestedProperty.Type }}{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }
+    {{ end }}
+}
+{{ end }}
+{{ end }}

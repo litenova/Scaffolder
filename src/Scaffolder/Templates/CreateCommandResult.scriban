@@ -1,0 +1,6 @@
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
+
+public class Create{{ AggregateRoot.Name }}CommandResult
+{
+    public required {{ AggregateRoot.IdType }} Id { get; init; }
+}

@@ -1,0 +1,31 @@
+using LiteBus.Commands.Abstractions;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
+
+public sealed class Create{{ AggregateRoot.Name }}Command : ICommand
+{
+{{~ func GenerateProperties
+    for property in $0
+        if property.IsComplex
+~}}
+    public {{ property.IsRequired ? "required " : "" }}Create{{ property.Name.PascalCase }}CommandModel {{ property.Name.PascalCase }} { get; init; }
+{{~     else
+~}}
+    /// <summary>
+    /// The {{ property.Name.LowerCase }} of the {{ AggregateRoot.Name.LowerCase }}.
+    /// </summary>
+    public {{ property.IsRequired ? "required " : "" }}{{ property.Type }} {{ property.Name.PascalCase }} { get; init; }
+{{~     end
+    end
+end ~}}
+{{ GenerateProperties AggregateRoot.Properties }}
+}
+
+{{~ for property in AggregateRoot.Properties
+    if property.IsComplex
+~}}
+public sealed class Create{{ property.Name.PascalCase }}CommandModel
+{
+{{ GenerateProperties property.NestedProperties }}
+}
+{{~ end ~}}

@@ -1,0 +1,13 @@
+using System.Collections.Generic;
+using LiteBus.Queries.Abstractions;
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
+
+/// <summary>
+/// Represents a query to retrieve all {{ AggregateRoot.Name.Plural }}.
+/// </summary>
+public class GetAll{{ AggregateRoot.Name.Plural }}Query : IQuery<IEnumerable<{{ AggregateRoot.Name }}QueryResult>>
+{
+    // This query doesn't require any parameters
+}

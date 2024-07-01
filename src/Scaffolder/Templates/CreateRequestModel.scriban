@@ -1,0 +1,39 @@
+using System;
+
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
+
+/// <summary>
+/// Represents a request to create a new {{ AggregateRoot.Name }}.
+/// </summary>
+public class Create{{ AggregateRoot.Name }}Request
+{
+    {{~ func GenerateProperties
+        for property in $0
+            if property.Name != "Id"
+                if property.IsComplex
+    ~}}
+    /// <summary>
+    /// Gets or sets the {{ property.Name.Humanize }}.
+    /// </summary>
+    public Create{{ property.Name.PascalCase }}RequestModel {{ property.Name.PascalCase }} { get; set; }
+    {{~         else
+    ~}}
+    /// <summary>
+    /// Gets or sets the {{ property.Name.Humanize }}.
+    /// </summary>
+    public {{ property.Type }} {{ property.Name.PascalCase }} { get; set; }
+    {{~         end
+            end
+        end
+    end ~}}
+    {{ GenerateProperties AggregateRoot.Properties }}
+}
+
+{{~ for property in AggregateRoot.Properties
+    if property.IsComplex
+~}}
+public class Create{{ property.Name.PascalCase }}RequestModel
+{
+    {{ GenerateProperties property.NestedProperties }}
+}
+{{~ end ~}}

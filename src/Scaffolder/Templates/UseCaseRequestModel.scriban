@@ -12,15 +12,35 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}Request
     /// </summary>
     public {{ AggregateRoot.IdType }} Id { get; init; }
 
-    {{~ if UseCase.Parameters.Count > 0 ~}}
-    {{~ for parameter in UseCase.Parameters ~}}
+    {{~ func GenerateParameters
+        for parameter in $0
+            if parameter.IsComplex
+    ~}}
+    /// <summary>
+    /// Gets or initializes the {{ parameter.Name.Humanize }}.
+    /// </summary>
+    public {{ parameter.Name.PascalCase }}RequestModel {{ parameter.Name.PascalCase }} { get; init; }
+    {{~     else
+    ~}}
     /// <summary>
     /// Gets or initializes the {{ parameter.Name.Humanize }}.
     /// </summary>
     public {{ parameter.Type }} {{ parameter.Name.PascalCase }} { get; init; }
-
-    {{~ end ~}}
+    {{~     end
+        end
+    end ~}}
+    {{~ if UseCase.Parameters.Count > 0 ~}}
+    {{ GenerateParameters UseCase.Parameters }}
     {{~ else ~}}
     // TODO: Add additional request properties specific to this use case
     {{~ end ~}}
 }
+
+{{~ for parameter in UseCase.Parameters
+    if parameter.IsComplex
+~}}
+public class {{ parameter.Name.PascalCase }}RequestModel
+{
+    {{ GenerateParameters parameter.NestedParameters }}
+}
+{{~ end ~}}
