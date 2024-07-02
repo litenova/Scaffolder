@@ -67,7 +67,9 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
                     if property.IsComplex ~}}
             {{ property.Name.PascalCase }} = new Create{{ property.Name.PascalCase }}CommandModel
             {
-                {{ MapProperties property.NestedProperties | string.indent 16 }}
+                {{~ for nestedProperty in property.NestedProperties ~}}
+                {{ nestedProperty.Name.PascalCase }} = request.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
+                {{~ end ~}}
             },
                     {{~ else ~}}
             {{ property.Name.PascalCase }} = request.{{ property.Name.PascalCase }},
@@ -159,7 +161,9 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
                 if parameter.IsComplex ~}}
             {{ parameter.Name.PascalCase }} = new {{ parameter.Name.PascalCase }}CommandModel
             {
-                {{ MapParameters parameter.NestedParameters | string.indent 16 }}
+                {{~ for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
+                {{~ end ~}}
             },
                 {{~ else ~}}
             {{ parameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }},

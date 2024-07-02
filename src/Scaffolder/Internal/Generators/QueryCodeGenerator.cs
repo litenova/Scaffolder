@@ -14,7 +14,7 @@ public sealed class QueryCodeGenerator : ICodeGenerator
     /// <returns>An enumerable of code generation specifications.</returns>
     public IEnumerable<CodeGenerationSpecification> Generate(CodeGenerationContext context)
     {
-        var outputDirectory = Path.Combine(context.SolutionDirectory.FullName, "src", "Application", context.AggregateRoot.Name.Plural);
+        var outputDirectory = Path.Combine(context.ApplicationProject.Directory.FullName, context.AggregateRoot.Name.Plural);
 
         // Shared QueryResult
         yield return new CodeGenerationSpecification

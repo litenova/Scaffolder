@@ -39,7 +39,7 @@ internal sealed class ScribanTemplatingEngine : ITemplatingEngine
         }
 
         var scriptObject = new ScriptObject();
-        scriptObject.Import(model);
+        scriptObject.Import(model, renamer: member => member.Name);
         _templateContext.PushGlobal(scriptObject);
 
         try

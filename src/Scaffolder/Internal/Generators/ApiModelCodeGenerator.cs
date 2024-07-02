@@ -9,7 +9,7 @@ public sealed class ApiModelCodeGenerator : ICodeGenerator
 {
     public IEnumerable<CodeGenerationSpecification> Generate(CodeGenerationContext context)
     {
-        var outputDirectory = Path.Combine(context.SolutionDirectory.FullName, "src", context.WebApiProject.Name, "Models", context.AggregateRoot.Name.Plural);
+        var outputDirectory = Path.Combine(context.WebApiProject.Directory.FullName, "Models", context.AggregateRoot.Name.Plural);
 
         // General response model
         yield return new CodeGenerationSpecification

@@ -11,7 +11,7 @@ public sealed class UseCaseCommandCodeGenerator : ICodeGenerator
     {
         foreach (var useCase in context.AggregateRoot.UseCases)
         {
-            var outputDirectory = Path.Combine(context.SolutionDirectory.FullName, "src", "Application", context.AggregateRoot.Name.Plural, useCase.Name);
+            var outputDirectory = Path.Combine(context.ApplicationProject.Directory.FullName, context.AggregateRoot.Name.Plural, useCase.Name);
 
             yield return new CodeGenerationSpecification
             {

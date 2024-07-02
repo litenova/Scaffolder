@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
 using Scaffolder.Utilities;
+// ReSharper disable UnusedAutoPropertyAccessor.Global
 
 namespace Scaffolder.Internal.Descriptors;
 
@@ -11,6 +12,7 @@ namespace Scaffolder.Internal.Descriptors;
 /// </summary>
 public sealed class AggregateRootDescriptor
 {
+    // ReSharper disable once NotAccessedField.Local
     private readonly ILogger _logger;
 
     /// <summary>
@@ -114,28 +116,32 @@ public sealed class AggregateRootDescriptor
     }
 
     /// <summary>
-    /// Extracts properties from the class declaration.
+    /// Extracts properties from the class declaration, including inherited properties with public getters.
     /// </summary>
     private static ImmutableArray<PropertyDescriptor> ExtractProperties(ClassDeclarationSyntax classDeclaration, SemanticModel semanticModel, ILogger logger)
     {
         var properties = new List<PropertyDescriptor>();
+        var typeSymbol = semanticModel.GetDeclaredSymbol(classDeclaration) as ITypeSymbol;
 
-        foreach (var property in classDeclaration.Members.OfType<PropertyDeclarationSyntax>())
+        if (typeSymbol == null)
         {
-            var propertySymbol = semanticModel.GetDeclaredSymbol(property) as IPropertySymbol;
-            if (propertySymbol == null)
-            {
-                logger.LogWarning("Unable to get symbol for property: {PropertyName}", property.Identifier.Text);
-                continue;
-            }
+            logger.LogWarning("Unable to get type symbol for class: {ClassName}", classDeclaration.Identifier.Text);
+            return ImmutableArray<PropertyDescriptor>.Empty;
+        }
 
-            var isComplex = IsComplexType(propertySymbol.Type);
-            var nestedProperties = isComplex ? ExtractNestedProperties(propertySymbol.Type, logger) : ImmutableArray<PropertyDescriptor>.Empty;
+        foreach (var member in typeSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            // Include only properties with public getters
+            if (member.GetMethod?.DeclaredAccessibility != Accessibility.Public)
+                continue;
+
+            var isComplex = IsComplexType(member.Type);
+            var nestedProperties = isComplex ? ExtractNestedProperties(member.Type, logger) : ImmutableArray<PropertyDescriptor>.Empty;
 
             var propertyDescriptor = new PropertyDescriptor(
-                property.Identifier.Text,
-                property.Type.ToString(),
-                property.Modifiers.Any(m => m.Text == "required"),
+                member.Name,
+                member.Type.ToString() ?? throw new InvalidOperationException(),
+                member.IsRequired,
                 isComplex,
                 nestedProperties
             );
@@ -195,55 +201,84 @@ public sealed class AggregateRootDescriptor
     }
 
     /// <summary>
-    /// Extracts use cases from the class declaration.
+    /// Extracts use cases from the class declaration, including inherited public methods.
     /// </summary>
     private static ImmutableArray<UseCaseDescriptor> ExtractUseCases(ClassDeclarationSyntax classDeclaration, SemanticModel semanticModel, ILogger logger)
     {
-        var useCases = classDeclaration.Members
-            .OfType<MethodDeclarationSyntax>()
-            .Where(m => m.Modifiers.Any(mod => mod.Text == "public"))
-            .Select(m =>
-            {
-                var parameters = ExtractParameters(m.ParameterList.Parameters, semanticModel, logger);
+        if (semanticModel.GetDeclaredSymbol(classDeclaration) is not INamedTypeSymbol typeSymbol)
+        {
+            logger.LogWarning("Unable to get type symbol for class: {ClassName}", classDeclaration.Identifier.Text);
+            return ImmutableArray<UseCaseDescriptor>.Empty;
+        }
 
-                var useCase = new UseCaseDescriptor(
-                    m.Identifier.Text,
-                    m.ReturnType.ToString(),
-                    parameters
-                );
+        var useCases = new List<UseCaseDescriptor>();
 
-                logger.LogDebug("Extracted use case: {UseCaseName}, ReturnType: {ReturnType}, ParametersCount: {ParametersCount}",
-                    useCase.Name, useCase.ReturnType, useCase.Parameters.Length);
+        foreach (var member in typeSymbol.GetMembers().OfType<IMethodSymbol>())
+        {
+            if (!IsUserDefinedPublicMethod(member))
+                continue;
 
-                return useCase;
-            })
-            .ToArray();
+            var parameters = ExtractParameters(member.Parameters, logger);
+
+            var useCase = new UseCaseDescriptor(
+                member.Name,
+                member.ReturnType.ToString() ?? throw new InvalidOperationException(),
+                parameters
+            );
+
+            useCases.Add(useCase);
+
+            logger.LogDebug("Extracted use case: {UseCaseName}, ReturnType: {ReturnType}, ParametersCount: {ParametersCount}",
+                useCase.Name, useCase.ReturnType, useCase.Parameters.Length);
+        }
 
         return [..useCases];
     }
 
     /// <summary>
+    /// Determines if a method is a user-defined public method.
+    /// </summary>
+    private static bool IsUserDefinedPublicMethod(IMethodSymbol methodSymbol)
+    {
+        // Must be public
+        if (methodSymbol.DeclaredAccessibility != Accessibility.Public)
+            return false;
+
+        // Exclude methods from Object class
+        if (methodSymbol.ContainingType.SpecialType == SpecialType.System_Object)
+            return false;
+
+        // Exclude compiler-generated methods
+        if (methodSymbol.IsImplicitlyDeclared)
+            return false;
+
+        // Exclude property accessors
+        if (methodSymbol.AssociatedSymbol is IPropertySymbol)
+            return false;
+
+        // Exclude constructors
+        if (methodSymbol.MethodKind == MethodKind.Constructor)
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
     /// Extracts parameters from a parameter list.
     /// </summary>
-    private static ImmutableArray<ParameterDescriptor> ExtractParameters(SeparatedSyntaxList<ParameterSyntax> parameters, SemanticModel semanticModel, ILogger logger)
+    private static ImmutableArray<ParameterDescriptor> ExtractParameters(ImmutableArray<IParameterSymbol> parameters, ILogger logger)
     {
         var extractedParameters = new List<ParameterDescriptor>();
 
         foreach (var parameter in parameters)
         {
-            if (semanticModel.GetDeclaredSymbol(parameter) is not IParameterSymbol parameterSymbol)
-            {
-                logger.LogWarning("Unable to get symbol for parameter: {ParameterName}", parameter.Identifier.Text);
-                continue;
-            }
-
-            var isComplex = IsComplexType(parameterSymbol.Type);
-            var nestedParameters = isComplex ? ExtractNestedParameters(parameterSymbol.Type, logger) : ImmutableArray<ParameterDescriptor>.Empty;
+            var isComplex = IsComplexType(parameter.Type);
+            var nestedParameters = isComplex ? ExtractNestedParameters(parameter.Type, logger) : ImmutableArray<ParameterDescriptor>.Empty;
 
             var parameterDescriptor = new ParameterDescriptor(
-                parameter.Identifier.Text,
-                parameter.Type?.ToString() ?? "object",
-                parameterSymbol.IsOptional,
+                parameter.Name,
+                parameter.Type.ToString() ?? throw new InvalidOperationException(),
+                parameter.IsOptional,
                 isComplex,
                 nestedParameters
             );

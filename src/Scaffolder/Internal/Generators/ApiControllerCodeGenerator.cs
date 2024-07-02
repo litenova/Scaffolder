@@ -10,7 +10,7 @@ public sealed class ApiControllerCodeGenerator : ICodeGenerator
 {
     public IEnumerable<CodeGenerationSpecification> Generate(CodeGenerationContext context)
     {
-        var outputDirectory = Path.Combine(context.SolutionDirectory.FullName, "src", "Api", "Controllers");
+        var outputDirectory = Path.Combine(context.WebApiProject.Directory.FullName, "Controllers");
 
         yield return new CodeGenerationSpecification
         {

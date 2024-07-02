@@ -1,27 +1,55 @@
 using {{ DomainProject.Namespace }};
 using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using LiteBus.Commands.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
 
+/// <summary>
+/// Handles the {{ UseCase.Name }} command for {{ AggregateRoot.Name }}.
+/// </summary>
 public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommandHandler<{{ UseCase.Name }}{{ AggregateRoot.Name }}Command>
 {
     {{~ if Options.UseGenericRepository ~}}
     private readonly IRepository<{{ AggregateRoot.Name }}> _repository;
-
-    public {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler(IRepository<{{ AggregateRoot.Name }}> repository)
     {{~ else ~}}
     private readonly I{{ AggregateRoot.Name }}Repository _repository;
-
-    public {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler(I{{ AggregateRoot.Name }}Repository repository)
     {{~ end ~}}
+    private readonly ILogger<{{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="{{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler"/> class.
+    /// </summary>
+    /// <param name="repository">The repository for {{ AggregateRoot.Name }} entities.</param>
+    /// <param name="logger">The logger.</param>
+    public {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler(
+        {{~ if Options.UseGenericRepository ~}}
+        IRepository<{{ AggregateRoot.Name }}> repository,
+        {{~ else ~}}
+        I{{ AggregateRoot.Name }}Repository repository,
+        {{~ end ~}}
+        ILogger<{{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler> logger)
     {
         _repository = repository;
+        _logger = logger;
     }
 
+    /// <summary>
+    /// Handles the {{ UseCase.Name }} command for {{ AggregateRoot.Name }}.
+    /// </summary>
+    /// <param name="command">The command to handle.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     public async Task HandleAsync({{ UseCase.Name }}{{ AggregateRoot.Name }}Command command, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Executing {{ UseCase.Name }} command for {{ AggregateRoot.Name }} with ID: {Id}", command.Id);
+
         var {{ AggregateRoot.Name.CamelCase }} = await _repository.GetAsync(command.Id, cancellationToken);
+
+        if ({{ AggregateRoot.Name.CamelCase }} == null)
+        {
+            _logger.LogWarning("{{ AggregateRoot.Name }} with ID: {Id} not found", command.Id);
+            throw new NotFoundException($"{{ AggregateRoot.Name }} with ID {command.Id} not found");
+        }
 
         {{ AggregateRoot.Name.CamelCase }}.{{ UseCase.Name }}(
             {{~ func MapParameters
@@ -30,7 +58,9 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommand
             ~}}
             new {{ parameter.Type }}
             {
-                {{ MapParameters parameter.NestedParameters | string.indent 4 }}
+                {{~ for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
+                {{~ end ~}}
             }{{~ if !for.last ~}},{{~ end ~}}
             {{~     else
             ~}}
@@ -42,5 +72,7 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommand
         );
 
         await _repository.UpdateAsync({{ AggregateRoot.Name.CamelCase }}, cancellationToken);
+        
+        _logger.LogInformation("Successfully executed {{ UseCase.Name }} command for {{ AggregateRoot.Name }} with ID: {Id}", command.Id);
     }
 }

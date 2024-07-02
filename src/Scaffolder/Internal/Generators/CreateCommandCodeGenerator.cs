@@ -9,7 +9,7 @@ public sealed class CreateCommandCodeGenerator : ICodeGenerator
 {
     public IEnumerable<CodeGenerationSpecification> Generate(CodeGenerationContext context)
     {
-        var outputDirectory = Path.Combine(context.SolutionDirectory.FullName, "src", "Application", context.AggregateRoot.Name.Plural, "Create");
+        var outputDirectory = Path.Combine(context.ApplicationProject.Directory.FullName, context.AggregateRoot.Name.Plural, "Create");
 
         yield return new CodeGenerationSpecification
         {
