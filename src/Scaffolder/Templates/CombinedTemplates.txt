@@ -11,6 +11,7 @@ using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
 {{~ for useCase in UseCases ~}}
 {{~ if useCase.Name != "Create" && useCase.Name != "GetById" && useCase.Name != "GetAll" ~}}
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ useCase.Name }};
@@ -131,9 +132,8 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
         var query = new GetAll{{ AggregateRoot.Name.Plural }}Query();
 
         var results = _queryMediator.StreamAsync(query, cancellationToken);
-        var responseModels = results.Select(MapToResponseModel);
         
-        return Ok(responseModels);
+        return results.Select(MapToResponseModel);
     }
 
     {{~ for useCase in UseCases ~}}

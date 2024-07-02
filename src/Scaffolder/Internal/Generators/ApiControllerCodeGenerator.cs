@@ -1,5 +1,4 @@
 using Scaffolder.Abstracts;
-using Scaffolder.Utilities;
 
 namespace Scaffolder.Internal.Generators;
 
