@@ -8,9 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Annotations;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
-using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
 {{~ for useCase in UseCases ~}}
 {{~ if useCase.Name != "Create" && useCase.Name != "GetById" && useCase.Name != "GetAll" ~}}
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ useCase.Name }};
@@ -106,44 +106,33 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
         _logger.LogInformation("Retrieving {{ AggregateRoot.Name }} with ID: {Id}", id);
         
         var query = new Get{{ AggregateRoot.Name }}ByIdQuery { Id = id };
+        
         var result = await _queryMediator.QueryAsync(query, cancellationToken);
 
-        if (result == null)
-        {
-            _logger.LogWarning("{{ AggregateRoot.Name }} with ID: {Id} not found", id);
-            return NotFound();
-        }
-
         var responseModel = MapToResponseModel(result);
+        
         _logger.LogInformation("Retrieved {{ AggregateRoot.Name }} with ID: {Id}", id);
+        
         return Ok(responseModel);
     }
 
     /// <summary>
     /// Retrieves all {{ AggregateRoot.Name.Plural }}.
     /// </summary>
-    /// <param name="request">The retrieval request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of {{ AggregateRoot.Name.Plural }}.</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<{{ AggregateRoot.Name }}ResponseModel>), StatusCodes.Status200OK)]
-    [SwaggerOperation(Summary = "Get all {{ AggregateRoot.Name.Plural }}", Description = "Retrieves all {{ AggregateRoot.Name.Plural }} with optional pagination.")]
-    public async Task<ActionResult<IEnumerable<{{ AggregateRoot.Name }}ResponseModel>>> GetAllAsync([FromQuery] GetAll{{ AggregateRoot.Name.Plural }}Request request, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(IAsyncEnumerable<{{ AggregateRoot.Name }}ResponseModel>), StatusCodes.Status200OK)]
+    [SwaggerOperation(Summary = "Get all {{ AggregateRoot.Name.Plural }}", Description = "Retrieves all {{ AggregateRoot.Name.Plural }}.")]
+    public IAsyncEnumerable<{{ AggregateRoot.Name }}ResponseModel> GetAllAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Retrieving all {{ AggregateRoot.Name.Plural }}");
         
-        var query = new GetAll{{ AggregateRoot.Name.Plural }}Query
-        {
-            PageNumber = request.PageNumber,
-            PageSize = request.PageSize,
-            SortBy = request.SortBy,
-            SortDescending = request.SortDescending
-        };
+        var query = new GetAll{{ AggregateRoot.Name.Plural }}Query();
 
-        var results = await _queryMediator.QueryAsync(query, cancellationToken);
+        var results = _queryMediator.StreamAsync(query, cancellationToken);
         var responseModels = results.Select(MapToResponseModel);
         
-        _logger.LogInformation("Retrieved {Count} {{ AggregateRoot.Name.Plural }}", responseModels.Count());
         return Ok(responseModels);
     }
 
@@ -455,7 +444,7 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Get
 /// <summary>
 /// Represents a query to retrieve all {{ AggregateRoot.Name.Plural }}.
 /// </summary>
-public class GetAll{{ AggregateRoot.Name.Plural }}Query : IQuery<IEnumerable<{{ AggregateRoot.Name }}QueryResult>>
+public class GetAll{{ AggregateRoot.Name.Plural }}Query : IStreamQuery<{{ AggregateRoot.Name }}QueryResult>
 {
     // This query doesn't require any parameters
 }
@@ -467,8 +456,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiteBus.Queries.Abstractions;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
-using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using {{ DomainProject.Namespace }};
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
@@ -476,7 +465,7 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Get
 /// <summary>
 /// Handles the retrieval of all {{ AggregateRoot.Name.Plural }}.
 /// </summary>
-public class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IQueryHandler<GetAll{{ AggregateRoot.Name.Plural }}Query, IEnumerable<{{ AggregateRoot.Name }}QueryResult>>
+public class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IStreamQueryHandler<GetAll{{ AggregateRoot.Name.Plural }}Query, {{ AggregateRoot.Name }}QueryResult>
 {
     private readonly {{ if Options.UseGenericRepository }}IRepository<{{ AggregateRoot.Name }}>{{ else }}I{{ AggregateRoot.Name }}Repository{{ end }} _repository;
     private readonly ILogger<GetAll{{ AggregateRoot.Name.Plural }}QueryHandler> _logger;
@@ -499,28 +488,24 @@ public class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IQueryHandler<G
     /// </summary>
     /// <param name="query">The query to retrieve all {{ AggregateRoot.Name.Plural }}.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation, containing the collection of {{ AggregateRoot.Name }}QueryResult.</returns>
-    public async Task<IEnumerable<{{ AggregateRoot.Name }}QueryResult>> HandleAsync(GetAll{{ AggregateRoot.Name.Plural }}Query query, CancellationToken cancellationToken = default)
+    /// <returns>An IAsyncEnumerable representing the asynchronous stream of {{ AggregateRoot.Name }}QueryResult.</returns>
+    public IAsyncEnumerable<{{ AggregateRoot.Name }}QueryResult> StreamAsync(GetAll{{ AggregateRoot.Name.Plural }}Query query, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Retrieving all {{ AggregateRoot.Name.Plural }}");
 
-        var entities = await _repository.GetAllAsync(cancellationToken);
-
-        _logger.LogInformation("Successfully retrieved {Count} {{ AggregateRoot.Name.Plural }}", entities.Count());
-
-        return entities.Select(entity => new {{ AggregateRoot.Name }}QueryResult
+        return _repository.GetAllAsync(cancellationToken).Select(entity => new {{ AggregateRoot.Name }}QueryResult
         {
             Id = entity.Id,
-            {{ for property in AggregateRoot.Properties }}
-            {{ if property.Name.Original != "Id" }}
+            {{~ for property in AggregateRoot.Properties ~}}
+            {{~ if property.Name.Original != "Id" ~}}
             {{ property.Name.PascalCase }} = {{ if property.IsComplex }}new {{ property.Name.PascalCase }}QueryResult
             {
-                {{ for nestedProperty in property.NestedProperties }}
+                {{~ for nestedProperty in property.NestedProperties ~}}
                 {{ nestedProperty.Name.PascalCase }} = entity.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
-                {{ end }}
+                {{~ end ~}}
             }{{ else }}entity.{{ property.Name.PascalCase }}{{ end }},
-            {{ end }}
-            {{ end }}
+            {{~ end ~}}
+            {{~ end ~}}
         });
     }
 }

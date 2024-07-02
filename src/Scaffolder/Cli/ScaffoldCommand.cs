@@ -78,5 +78,7 @@ public sealed class ScaffolderCommand(
                 logger.LogInformation("Processing aggregate root: {AggregateRootName}", aggregateRoot.Name);
             }
         }
+
+        logger.LogInformation("Processing complete");
     }
 }

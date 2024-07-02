@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Annotations;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
@@ -104,16 +105,13 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
         _logger.LogInformation("Retrieving {{ AggregateRoot.Name }} with ID: {Id}", id);
         
         var query = new Get{{ AggregateRoot.Name }}ByIdQuery { Id = id };
+        
         var result = await _queryMediator.QueryAsync(query, cancellationToken);
 
-        if (result == null)
-        {
-            _logger.LogWarning("{{ AggregateRoot.Name }} with ID: {Id} not found", id);
-            return NotFound();
-        }
-
         var responseModel = MapToResponseModel(result);
+        
         _logger.LogInformation("Retrieved {{ AggregateRoot.Name }} with ID: {Id}", id);
+        
         return Ok(responseModel);
     }
 
@@ -131,11 +129,9 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
         
         var query = new GetAll{{ AggregateRoot.Name.Plural }}Query();
 
-        var results = await _queryMediator.QueryAsync(query, cancellationToken);
-        var responseModels = results.Select(MapToResponseModel);
+        var results = _queryMediator.StreamAsync(query, cancellationToken);
         
-        _logger.LogInformation("Retrieved {Count} {{ AggregateRoot.Name.Plural }}", responseModels.Count());
-        return Ok(responseModels);
+        return results.Select(MapToResponseModel);
     }
 
     {{~ for useCase in UseCases ~}}

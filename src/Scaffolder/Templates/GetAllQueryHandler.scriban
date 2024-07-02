@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiteBus.Queries.Abstractions;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
+using {{ DomainProject.Namespace }};
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
@@ -11,7 +13,7 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Get
 /// <summary>
 /// Handles the retrieval of all {{ AggregateRoot.Name.Plural }}.
 /// </summary>
-public class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IQueryHandler<GetAll{{ AggregateRoot.Name.Plural }}Query, IAsyncEnumerable<{{ AggregateRoot.Name }}QueryResult>>
+public class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IStreamQueryHandler<GetAll{{ AggregateRoot.Name.Plural }}Query, {{ AggregateRoot.Name }}QueryResult>
 {
     private readonly {{ if Options.UseGenericRepository }}IRepository<{{ AggregateRoot.Name }}>{{ else }}I{{ AggregateRoot.Name }}Repository{{ end }} _repository;
     private readonly ILogger<GetAll{{ AggregateRoot.Name.Plural }}QueryHandler> _logger;
@@ -35,7 +37,7 @@ public class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IQueryHandler<G
     /// <param name="query">The query to retrieve all {{ AggregateRoot.Name.Plural }}.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An IAsyncEnumerable representing the asynchronous stream of {{ AggregateRoot.Name }}QueryResult.</returns>
-    public IAsyncEnumerable<{{ AggregateRoot.Name }}QueryResult> HandleAsync(GetAll{{ AggregateRoot.Name.Plural }}Query query, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<{{ AggregateRoot.Name }}QueryResult> StreamAsync(GetAll{{ AggregateRoot.Name.Plural }}Query query, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Retrieving all {{ AggregateRoot.Name.Plural }}");
 
