@@ -2,13 +2,15 @@ using Scaffolder.Abstracts;
 
 namespace Scaffolder.Internal.Generators;
 
-/// <summary>
-/// Provides specifications for generating Create command-related code.
-/// </summary>
 public sealed class CreateCommandCodeGenerator : ICodeGenerator
 {
     public IEnumerable<CodeGenerationSpecification> Generate(CodeGenerationContext context)
     {
+        if (context.AggregateRoot.CreateUseCase == null)
+        {
+            yield break;
+        }
+
         var outputDirectory = Path.Combine(context.ApplicationProject.Directory.FullName, context.AggregateRoot.Name.Plural, "Create");
 
         yield return new CodeGenerationSpecification
@@ -17,7 +19,7 @@ public sealed class CreateCommandCodeGenerator : ICodeGenerator
             TemplateModel = new
             {
                 context.ApplicationProject,
-                context.AggregateRoot
+                context.AggregateRoot,
             },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, $"Create{context.AggregateRoot.Name}Command.cs"))
         };
@@ -27,10 +29,11 @@ public sealed class CreateCommandCodeGenerator : ICodeGenerator
             TemplateName = "CreateCommandHandler",
             TemplateModel = new
             {
-                DomainProject = context.ApplicationProject,
+                context.DomainProject,
                 context.ApplicationProject,
                 context.AggregateRoot,
-                context.Options
+                context.Options,
+                
             },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, $"Create{context.AggregateRoot.Name}CommandHandler.cs"))
         };
@@ -41,12 +44,12 @@ public sealed class CreateCommandCodeGenerator : ICodeGenerator
             TemplateModel = new
             {
                 context.ApplicationProject,
-                context.AggregateRoot
+                context.AggregateRoot,
+                context.DomainProject,
             },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, $"Create{context.AggregateRoot.Name}CommandValidator.cs"))
         };
 
-        // Generate Create Command Result
         yield return new CodeGenerationSpecification
         {
             TemplateName = "CreateCommandResult",

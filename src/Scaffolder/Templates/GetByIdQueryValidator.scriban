@@ -1,15 +1,23 @@
 using LiteBus.Queries.Abstractions;
 
-namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
 
-public class {{ UseCase.Name }}{{ AggregateRoot.Name }}QueryValidator : IQueryPreHandler<{{ UseCase.Name }}{{ AggregateRoot.Name }}Query>
+/// <summary>
+/// Validates the Get{{ AggregateRoot.Name }}ByIdQuery before it is handled.
+/// </summary>
+public class Get{{ AggregateRoot.Name }}ByIdQueryValidator : IQueryPreHandler<Get{{ AggregateRoot.Name }}ByIdQuery>
 {
-    public Task PreHandleAsync({{ UseCase.Name }}{{ AggregateRoot.Name }}Query query, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Validates the Get{{ AggregateRoot.Name }}ByIdQuery.
+    /// </summary>
+    /// <param name="query">The query to validate.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    public Task PreHandleAsync(Get{{ AggregateRoot.Name }}ByIdQuery query, CancellationToken cancellationToken = default)
     {
         // TODO: Implement validation logic here
         // Example:
-        // if (query.SomeProperty == default)
-        //     throw new ValidationException("SomeProperty must have a value.");
+        // if (query.Id == default)
+        //     throw new ValidationException("Id must have a valid value.");
 
         return Task.CompletedTask;
     }

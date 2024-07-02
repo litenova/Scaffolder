@@ -35,7 +35,7 @@ internal sealed class ScribanTemplatingEngine : ITemplatingEngine
         var scribanTemplate = Template.Parse(template);
         if (scribanTemplate.HasErrors)
         {
-            throw new InvalidOperationException($"Error parsing template: {string.Join(", ", scribanTemplate.Messages)}");
+            throw new InvalidOperationException($"Error parsing template: {string.Join(Environment.NewLine, scribanTemplate.Messages)}");
         }
 
         var scriptObject = new ScriptObject();

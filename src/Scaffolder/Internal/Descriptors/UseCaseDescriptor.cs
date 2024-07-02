@@ -3,7 +3,7 @@ using Scaffolder.Utilities;
 
 namespace Scaffolder.Internal.Descriptors;
 
-public sealed class UseCaseDescriptor
+public class UseCaseDescriptor
 {
     public RichString Name { get; }
 

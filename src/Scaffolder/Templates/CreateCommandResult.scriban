@@ -1,6 +1,12 @@
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
-public class Create{{ AggregateRoot.Name }}CommandResult
+/// <summary>
+/// Represents the result of creating a new {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class Create{{ AggregateRoot.Name }}CommandResult
 {
+    /// <summary>
+    /// Gets the unique identifier of the created {{ AggregateRoot.Name }}.
+    /// </summary>
     public required {{ AggregateRoot.IdType }} Id { get; init; }
 }

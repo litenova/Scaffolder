@@ -2,30 +2,33 @@ using LiteBus.Commands.Abstractions;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
-public sealed class Create{{ AggregateRoot.Name }}Command : ICommand
+/// <summary>
+/// Represents a command to create a new {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class Create{{ AggregateRoot.Name }}Command : ICommand<Create{{ AggregateRoot.Name }}CommandResult>
 {
-{{~ func GenerateProperties
-    for property in $0
-        if property.IsComplex
-~}}
-    public {{ property.IsRequired ? "required " : "" }}Create{{ property.Name.PascalCase }}CommandModel {{ property.Name.PascalCase }} { get; init; }
-{{~     else
-~}}
+{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
     /// <summary>
-    /// The {{ property.Name.LowerCase }} of the {{ AggregateRoot.Name.LowerCase }}.
+    /// Gets or initializes the {{ parameter.Name.Humanize }}.
     /// </summary>
-    public {{ property.IsRequired ? "required " : "" }}{{ property.Type }} {{ property.Name.PascalCase }} { get; init; }
-{{~     end
-    end
-end ~}}
-{{ GenerateProperties AggregateRoot.Properties }}
+    public {{ if parameter.IsRequired }}required {{ end }}{{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}CommandModel{{ else }}{{ parameter.Type }}{{ end }} {{ parameter.Name.PascalCase }} { get; init; }
+{{~ end ~}}
 }
 
-{{~ for property in AggregateRoot.Properties
-    if property.IsComplex
-~}}
-public sealed class Create{{ property.Name.PascalCase }}CommandModel
+{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+{{~ if parameter.IsComplex ~}}
+/// <summary>
+/// Represents the {{ parameter.Name.Humanize }} model for creating a {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class {{ parameter.Name.PascalCase }}CommandModel
 {
-{{ GenerateProperties property.NestedProperties }}
+    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    /// <summary>
+    /// Gets or initializes the {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    public {{ if nestedParameter.IsRequired }}required {{ end }}{{ nestedParameter.Type }} {{ nestedParameter.Name.PascalCase }} { get; init; }
+    {{~ end ~}}
 }
+
+{{~ end ~}}
 {{~ end ~}}

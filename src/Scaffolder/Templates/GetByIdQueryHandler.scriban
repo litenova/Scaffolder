@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiteBus.Queries.Abstractions;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+using {{ DomainProject.Namespace }};
 using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;

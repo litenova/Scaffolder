@@ -1,46 +1,43 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
-namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
 
 /// <summary>
 /// Represents a request for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
 /// </summary>
 public class {{ UseCase.Name }}{{ AggregateRoot.Name }}Request
 {
+    {{~ for parameter in UseCase.Parameters ~}}
     /// <summary>
-    /// Gets or initializes the unique identifier of the {{ AggregateRoot.Name }}.
+    /// Gets or sets the {{ parameter.Name.Humanize }}.
     /// </summary>
-    public {{ AggregateRoot.IdType }} Id { get; init; }
+    {{~ if parameter.IsRequired ~}}
+    [Required]
+    {{~ end ~}}
+    public {{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
 
-    {{~ func GenerateParameters
-        for parameter in $0
-            if parameter.IsComplex
-    ~}}
-    /// <summary>
-    /// Gets or initializes the {{ parameter.Name.Humanize }}.
-    /// </summary>
-    public {{ parameter.Name.PascalCase }}RequestModel {{ parameter.Name.PascalCase }} { get; init; }
-    {{~     else
-    ~}}
-    /// <summary>
-    /// Gets or initializes the {{ parameter.Name.Humanize }}.
-    /// </summary>
-    public {{ parameter.Type }} {{ parameter.Name.PascalCase }} { get; init; }
-    {{~     end
-        end
-    end ~}}
-    {{~ if UseCase.Parameters.Count > 0 ~}}
-    {{ GenerateParameters UseCase.Parameters }}
-    {{~ else ~}}
-    // TODO: Add additional request properties specific to this use case
     {{~ end ~}}
 }
 
-{{~ for parameter in UseCase.Parameters
-    if parameter.IsComplex
-~}}
+{{~ for parameter in UseCase.Parameters ~}}
+{{~ if parameter.IsComplex ~}}
+/// <summary>
+/// Represents the {{ parameter.Name.Humanize }} model for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
+/// </summary>
 public class {{ parameter.Name.PascalCase }}RequestModel
 {
-    {{ GenerateParameters parameter.NestedParameters }}
+    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    /// <summary>
+    /// Gets or sets the {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    {{~ if nestedParameter.IsRequired ~}}
+    [Required]
+    {{~ end ~}}
+    public {{ nestedParameter.Type }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
 }
+
+{{~ end ~}}
 {{~ end ~}}

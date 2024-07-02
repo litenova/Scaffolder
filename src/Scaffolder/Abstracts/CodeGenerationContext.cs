@@ -36,4 +36,9 @@ public sealed class CodeGenerationContext
     /// The solution
     /// </summary>
     public required SolutionDescriptor Solution { get; set; }
+
+    /// <summary>
+    /// The project that represents the domain layer.
+    /// </summary>
+    public required ProjectDescriptor DomainProject { get; set; }
 }

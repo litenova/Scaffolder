@@ -20,7 +20,7 @@ public sealed class ScaffolderCommand(
     public string SolutionPath { get; init; } = string.Empty;
 
     [CommandOption("overwrite", 'o', Description = "Overwrite existing files (default is false)")]
-    public bool OverwriteExisting { get; init; } = false;
+    public bool OverwriteExisting { get; init; } = true;
 
     public async ValueTask ExecuteAsync(IConsole console)
     {
@@ -45,7 +45,8 @@ public sealed class ScaffolderCommand(
                     ApplicationProject = applicationProject,
                     WebApiProject = webApiProject,
                     SolutionDirectory = solution.Directory,
-                    Options = new CodeGenerationOptions()
+                    Options = new CodeGenerationOptions(),
+                    DomainProject = project
                 };
 
                 var specifications = codeGenerators.SelectMany(g => g.Generate(context));
@@ -60,7 +61,10 @@ public sealed class ScaffolderCommand(
                         continue;
                     }
 
+                    logger.LogInformation("Fetching template: {TemplateName}", specification.TemplateName);
                     var template = templateRepository.GetTemplate(specification.TemplateName);
+
+                    logger.LogInformation("Rendering template: {TemplateName}", specification.TemplateName);
                     var output = await templatingEngine.RenderAsync(template, specification.TemplateModel);
 
                     // Ensure the directory exists

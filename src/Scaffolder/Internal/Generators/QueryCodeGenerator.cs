@@ -35,7 +35,13 @@ public sealed class QueryCodeGenerator : ICodeGenerator
         yield return new CodeGenerationSpecification
         {
             TemplateName = "GetByIdQueryHandler",
-            TemplateModel = new { context.ApplicationProject, context.AggregateRoot, context.Options },
+            TemplateModel = new
+            {
+                context.DomainProject,
+                context.ApplicationProject,
+                context.AggregateRoot,
+                context.Options
+            },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, "GetById", $"Get{context.AggregateRoot.Name}ByIdQueryHandler.cs"))
         };
 
@@ -50,21 +56,36 @@ public sealed class QueryCodeGenerator : ICodeGenerator
         yield return new CodeGenerationSpecification
         {
             TemplateName = "GetAllQuery",
-            TemplateModel = new { context.ApplicationProject, context.AggregateRoot },
+            TemplateModel = new
+            {
+                context.ApplicationProject, context.AggregateRoot,
+            },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, "GetAll", $"GetAll{context.AggregateRoot.Name.Plural}Query.cs"))
         };
 
         yield return new CodeGenerationSpecification
         {
             TemplateName = "GetAllQueryHandler",
-            TemplateModel = new { context.ApplicationProject, context.AggregateRoot, context.Options },
+            TemplateModel = new
+            {
+                context.DomainProject,
+                context.ApplicationProject,
+                context.AggregateRoot,
+                context.Options
+            },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, "GetAll", $"GetAll{context.AggregateRoot.Name.Plural}QueryHandler.cs"))
         };
 
         yield return new CodeGenerationSpecification
         {
             TemplateName = "GetAllQueryValidator",
-            TemplateModel = new { context.ApplicationProject, context.AggregateRoot },
+            TemplateModel = new
+            {
+                context.DomainProject,
+                context.ApplicationProject,
+                context.AggregateRoot,
+                context.Options
+            },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, "GetAll", $"GetAll{context.AggregateRoot.Name.Plural}QueryValidator.cs"))
         };
     }

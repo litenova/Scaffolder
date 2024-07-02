@@ -1,3 +1,4 @@
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 using {{ DomainProject.Namespace }};
 using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using LiteBus.Commands.Abstractions;
@@ -5,50 +6,103 @@ using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
-public class Create{{ AggregateRoot.Name }}CommandHandler : ICommandHandler<Create{{ AggregateRoot.Name }}Command>
+/// <summary>
+/// Handles the creation of a new {{ AggregateRoot.Name }}.
+/// </summary>
+public class Create{{ AggregateRoot.Name }}CommandHandler : ICommandHandler<Create{{ AggregateRoot.Name }}Command, Create{{ AggregateRoot.Name }}CommandResult>
 {
-{{~ if Options.UseGenericRepository ~}}
+{{~if Options.UseGenericRepository ~}}
     private readonly IRepository<{{ AggregateRoot.Name }}> _repository;
-    private readonly ILogger<Create{{ AggregateRoot.Name }}CommandHandler> _logger;
-
-    public Create{{ AggregateRoot.Name }}CommandHandler(IRepository<{{ AggregateRoot.Name }}> repository, ILogger<Create{{ AggregateRoot.Name }}CommandHandler> logger)
-{{~ else ~}}
+{{~else~}}
     private readonly I{{ AggregateRoot.Name }}Repository _repository;
+{{~end~}}
     private readonly ILogger<Create{{ AggregateRoot.Name }}CommandHandler> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Create{{ AggregateRoot.Name }}CommandHandler"/> class.
+    /// </summary>
+{{~if Options.UseGenericRepository ~}}
+    public Create{{ AggregateRoot.Name }}CommandHandler(IRepository<{{ AggregateRoot.Name }}> repository, ILogger<Create{{ AggregateRoot.Name }}CommandHandler> logger)
+{{~else~}}
     public Create{{ AggregateRoot.Name }}CommandHandler(I{{ AggregateRoot.Name }}Repository repository, ILogger<Create{{ AggregateRoot.Name }}CommandHandler> logger)
-{{~ end ~}}
+{{~end~}}
     {
         _repository = repository;
         _logger = logger;
     }
 
-    public async Task HandleAsync(Create{{ AggregateRoot.Name }}Command command, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Handles the command to create a new {{ AggregateRoot.Name }}.
+    /// </summary>
+    /// <param name="command">The command to create a new {{ AggregateRoot.Name }}.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A <see cref="Create{{ AggregateRoot.Name }}CommandResult"/> containing the Id of the newly created {{ AggregateRoot.Name }}.</returns>
+    public async Task<Create{{ AggregateRoot.Name }}CommandResult> HandleAsync(Create{{ AggregateRoot.Name }}Command command, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Creating new {{ AggregateRoot.Name }}");
 
-        var {{ AggregateRoot.Name.CamelCase }} = new {{ AggregateRoot.Name }}
+        {{ AggregateRoot.Name }} {{ AggregateRoot.Name.CamelCase }};
+
+{{~if AggregateRoot.CreateUseCase.Mechanism == 'InitProperties' ~}}
+        {{ AggregateRoot.Name.CamelCase }} = new {{ AggregateRoot.Name }}
         {
-        {{~ func MapProperties
-            for property in $0
-                if property.IsComplex
-        ~}}
-            {{ property.Name.PascalCase }} = new {{ property.Type }}
+    {{~for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+        {{~if parameter.IsComplex ~}}
+            {{ parameter.Name.PascalCase }} = new {{ parameter.Type }}
             {
-            {{~ for nestedProperty in property.NestedProperties ~}}
-                {{ nestedProperty.Name.PascalCase }} = command.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
-            {{~ end ~}}
+            {{~for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
+            {{~end~}}
             },
-        {{~     else
-        ~}}
-            {{ property.Name.PascalCase }} = command.{{ property.Name.PascalCase }},
-        {{~     end
-            end
-        end ~}}
-        {{ MapProperties AggregateRoot.Properties }}
+        {{~else~}}
+            {{ parameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }},
+        {{~end~}}
+    {{~end~}}
         };
+{{~end~}}
+{{~if AggregateRoot.CreateUseCase.Mechanism == 'StaticCreateMethod' ~}}
+        {{ AggregateRoot.Name.CamelCase }} = {{ AggregateRoot.Name }}.Create(
+    {{~for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+        {{~if parameter.IsComplex ~}}
+            new {{ parameter.Type }}
+            {
+            {{~for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
+            {{~end~}}
+            }{{if !for.last}},{{end}}
+        {{~else~}}
+            command.{{ parameter.Name.PascalCase }}{{if !for.last}},{{end}}
+        {{~end~}}
+    {{~end~}}
+        );
+{{~end~}}
+{{~if AggregateRoot.CreateUseCase.Mechanism == 'Constructor' ~}}
+        {{ AggregateRoot.Name.CamelCase }} = new {{ AggregateRoot.Name }}(
+    {{~for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+        {{~if parameter.IsComplex ~}}
+            new {{ parameter.Type }}
+            {
+            {{~for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
+            {{~end~}}
+            }{{if !for.last}},{{end}}
+        {{~else~}}
+            command.{{ parameter.Name.PascalCase }}{{if !for.last}},{{end}}
+        {{~end~}}
+    {{~end~}}
+        );
+{{~end~}}
+{{~if AggregateRoot.CreateUseCase.Mechanism == 'EmptyConstructor' ~}}
+        {{ AggregateRoot.Name.CamelCase }} = new {{ AggregateRoot.Name }}();
+{{~end~}}
 
         await _repository.AddAsync({{ AggregateRoot.Name.CamelCase }}, cancellationToken);
+        
         _logger.LogInformation("Created new {{ AggregateRoot.Name }} with ID: {Id}", {{ AggregateRoot.Name.CamelCase }}.Id);
+
+        return new Create{{ AggregateRoot.Name }}CommandResult
+        {
+            Id = {{ AggregateRoot.Name.CamelCase }}.Id
+        };
     }
 }

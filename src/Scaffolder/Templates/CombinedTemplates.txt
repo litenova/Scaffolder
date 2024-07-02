@@ -17,6 +17,8 @@ using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ useC
 {{~ end ~}}
 {{~ end ~}}
 using {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Shared;
+using {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Create;
+using {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.GetAll;
 using LiteBus.Commands.Abstractions;
 using LiteBus.Queries.Abstractions;
 
@@ -53,38 +55,40 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <param name="request">The creation request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created {{ AggregateRoot.Name }} ID.</returns>
-    [HttpPost(Name = "Create{{ AggregateRoot.Name }}")]
-    [ProducesResponseType(typeof(Create{{ AggregateRoot.Name }}CommandResult), StatusCodes.Status201Created)]
+    [HttpPost]
+    [ProducesResponseType(typeof(Create{{ AggregateRoot.Name }}Response), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [SwaggerOperation(Summary = "Create a new {{ AggregateRoot.Name }}", Description = "Creates a new {{ AggregateRoot.Name }} with the provided details.")]
     public async Task<IActionResult> CreateAsync([FromBody] Create{{ AggregateRoot.Name }}Request request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Creating new {{ AggregateRoot.Name }}");
-        
+
         var command = new Create{{ AggregateRoot.Name }}Command
         {
-            {{~ func MapProperties
-            for property in $0
-                if property.Name != "Id"
-                    if property.IsComplex ~}}
-            {{ property.Name.PascalCase }} = new Create{{ property.Name.PascalCase }}CommandModel
+            {{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+            {{~ if parameter.IsComplex ~}}
+            {{ parameter.Name.PascalCase }} = new {{ parameter.Name.PascalCase }}CommandModel
             {
-                {{~ for nestedProperty in property.NestedProperties ~}}
-                {{ nestedProperty.Name.PascalCase }} = request.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
+                {{~ for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
                 {{~ end ~}}
             },
-                    {{~ else ~}}
-            {{ property.Name.PascalCase }} = request.{{ property.Name.PascalCase }},
-                    {{~ end
-                end
-            end
-            end ~}}
-            {{ MapProperties AggregateRoot.Properties }}
+            {{~ else ~}}
+            {{ parameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
         };
 
         var result = await _commandMediator.SendAsync(command, cancellationToken);
-        _logger.LogInformation("Created new {{ AggregateRoot.Name }} with ID: {Id}", result.Id);
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = result.Id }, result);
+
+        var response = new Create{{ AggregateRoot.Name }}Response
+        {
+            Id = result.Id
+        };
+
+        _logger.LogInformation("Created new {{ AggregateRoot.Name }} with ID: {Id}", response.Id);
+
+        return CreatedAtAction(nameof(GetByIdAsync), new { id = response.Id }, response);
     }
 
     /// <summary>
@@ -93,7 +97,7 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <param name="id">The {{ AggregateRoot.Name }} identifier.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The requested {{ AggregateRoot.Name }}.</returns>
-    [HttpGet("{id}", Name = "Get{{ AggregateRoot.Name }}ById")]
+    [HttpGet("{id}")]
     [ProducesResponseType(typeof({{ AggregateRoot.Name }}ResponseModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(Summary = "Get a specific {{ AggregateRoot.Name }}", Description = "Retrieves a {{ AggregateRoot.Name }} by its unique identifier.")]
@@ -103,6 +107,12 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
         
         var query = new Get{{ AggregateRoot.Name }}ByIdQuery { Id = id };
         var result = await _queryMediator.QueryAsync(query, cancellationToken);
+
+        if (result == null)
+        {
+            _logger.LogWarning("{{ AggregateRoot.Name }} with ID: {Id} not found", id);
+            return NotFound();
+        }
 
         var responseModel = MapToResponseModel(result);
         _logger.LogInformation("Retrieved {{ AggregateRoot.Name }} with ID: {Id}", id);
@@ -115,7 +125,7 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <param name="request">The retrieval request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of {{ AggregateRoot.Name.Plural }}.</returns>
-    [HttpGet(Name = "GetAll{{ AggregateRoot.Name.Plural }}")]
+    [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<{{ AggregateRoot.Name }}ResponseModel>), StatusCodes.Status200OK)]
     [SwaggerOperation(Summary = "Get all {{ AggregateRoot.Name.Plural }}", Description = "Retrieves all {{ AggregateRoot.Name.Plural }} with optional pagination.")]
     public async Task<ActionResult<IEnumerable<{{ AggregateRoot.Name }}ResponseModel>>> GetAllAsync([FromQuery] GetAll{{ AggregateRoot.Name.Plural }}Request request, CancellationToken cancellationToken)
@@ -146,7 +156,7 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <param name="request">The {{ useCase.Name.Humanize }} request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The result of the {{ useCase.Name.Humanize }} operation.</returns>
-    [HttpPatch("{id}/{{ useCase.Name.Kebabcase }}", Name = "{{ useCase.Name }}{{ AggregateRoot.Name }}")]
+    [HttpPatch("{id}/{{ useCase.Name.Kebabcase }}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -158,21 +168,18 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
         var command = new {{ useCase.Name }}{{ AggregateRoot.Name }}Command
         {
             Id = id,
-            {{~ func MapParameters
-            for parameter in $0
-                if parameter.IsComplex ~}}
+            {{~ for parameter in useCase.Parameters ~}}
+            {{~ if parameter.IsComplex ~}}
             {{ parameter.Name.PascalCase }} = new {{ parameter.Name.PascalCase }}CommandModel
             {
                 {{~ for nestedParameter in parameter.NestedParameters ~}}
                 {{ nestedParameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
                 {{~ end ~}}
             },
-                {{~ else ~}}
+            {{~ else ~}}
             {{ parameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }},
-                {{~ end
-            end
-            end ~}}
-            {{ MapParameters useCase.Parameters }}
+            {{~ end ~}}
+            {{~ end ~}}
         };
 
         await _commandMediator.SendAsync(command, cancellationToken);
@@ -208,35 +215,39 @@ using LiteBus.Commands.Abstractions;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
-public sealed class Create{{ AggregateRoot.Name }}Command : ICommand
+/// <summary>
+/// Represents a command to create a new {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class Create{{ AggregateRoot.Name }}Command : ICommand<Create{{ AggregateRoot.Name }}CommandResult>
 {
-{{~ func GenerateProperties
-    for property in $0
-        if property.IsComplex
-~}}
-    public {{ property.IsRequired ? "required " : "" }}Create{{ property.Name.PascalCase }}CommandModel {{ property.Name.PascalCase }} { get; init; }
-{{~     else
-~}}
+{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
     /// <summary>
-    /// The {{ property.Name.LowerCase }} of the {{ AggregateRoot.Name.LowerCase }}.
+    /// Gets or initializes the {{ parameter.Name.Humanize }}.
     /// </summary>
-    public {{ property.IsRequired ? "required " : "" }}{{ property.Type }} {{ property.Name.PascalCase }} { get; init; }
-{{~     end
-    end
-end ~}}
-{{ GenerateProperties AggregateRoot.Properties }}
+    public {{ if parameter.IsRequired }}required {{ end }}{{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}CommandModel{{ else }}{{ parameter.Type }}{{ end }} {{ parameter.Name.PascalCase }} { get; init; }
+{{~ end ~}}
 }
 
-{{~ for property in AggregateRoot.Properties
-    if property.IsComplex
-~}}
-public sealed class Create{{ property.Name.PascalCase }}CommandModel
+{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+{{~ if parameter.IsComplex ~}}
+/// <summary>
+/// Represents the {{ parameter.Name.Humanize }} model for creating a {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class {{ parameter.Name.PascalCase }}CommandModel
 {
-{{ GenerateProperties property.NestedProperties }}
+    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    /// <summary>
+    /// Gets or initializes the {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    public {{ if nestedParameter.IsRequired }}required {{ end }}{{ nestedParameter.Type }} {{ nestedParameter.Name.PascalCase }} { get; init; }
+    {{~ end ~}}
 }
+
+{{~ end ~}}
 {{~ end ~}}
 
 ==================== CreateCommandHandler ====================
+using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 using {{ DomainProject.Namespace }};
 using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using LiteBus.Commands.Abstractions;
@@ -244,64 +255,125 @@ using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
-public class Create{{ AggregateRoot.Name }}CommandHandler : ICommandHandler<Create{{ AggregateRoot.Name }}Command>
+/// <summary>
+/// Handles the creation of a new {{ AggregateRoot.Name }}.
+/// </summary>
+public class Create{{ AggregateRoot.Name }}CommandHandler : ICommandHandler<Create{{ AggregateRoot.Name }}Command, Create{{ AggregateRoot.Name }}CommandResult>
 {
-{{~ if Options.UseGenericRepository ~}}
+{{~if Options.UseGenericRepository ~}}
     private readonly IRepository<{{ AggregateRoot.Name }}> _repository;
-    private readonly ILogger<Create{{ AggregateRoot.Name }}CommandHandler> _logger;
-
-    public Create{{ AggregateRoot.Name }}CommandHandler(IRepository<{{ AggregateRoot.Name }}> repository, ILogger<Create{{ AggregateRoot.Name }}CommandHandler> logger)
-{{~ else ~}}
+{{~else~}}
     private readonly I{{ AggregateRoot.Name }}Repository _repository;
+{{~end~}}
     private readonly ILogger<Create{{ AggregateRoot.Name }}CommandHandler> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Create{{ AggregateRoot.Name }}CommandHandler"/> class.
+    /// </summary>
+{{~if Options.UseGenericRepository ~}}
+    public Create{{ AggregateRoot.Name }}CommandHandler(IRepository<{{ AggregateRoot.Name }}> repository, ILogger<Create{{ AggregateRoot.Name }}CommandHandler> logger)
+{{~else~}}
     public Create{{ AggregateRoot.Name }}CommandHandler(I{{ AggregateRoot.Name }}Repository repository, ILogger<Create{{ AggregateRoot.Name }}CommandHandler> logger)
-{{~ end ~}}
+{{~end~}}
     {
         _repository = repository;
         _logger = logger;
     }
 
-    public async Task HandleAsync(Create{{ AggregateRoot.Name }}Command command, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Handles the command to create a new {{ AggregateRoot.Name }}.
+    /// </summary>
+    /// <param name="command">The command to create a new {{ AggregateRoot.Name }}.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A <see cref="Create{{ AggregateRoot.Name }}CommandResult"/> containing the Id of the newly created {{ AggregateRoot.Name }}.</returns>
+    public async Task<Create{{ AggregateRoot.Name }}CommandResult> HandleAsync(Create{{ AggregateRoot.Name }}Command command, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Creating new {{ AggregateRoot.Name }}");
 
-        var {{ AggregateRoot.Name.CamelCase }} = new {{ AggregateRoot.Name }}
+        {{ AggregateRoot.Name }} {{ AggregateRoot.Name.CamelCase }};
+
+{{~if AggregateRoot.CreateUseCase.Mechanism == 'InitProperties' ~}}
+        {{ AggregateRoot.Name.CamelCase }} = new {{ AggregateRoot.Name }}
         {
-        {{~ func MapProperties
-            for property in $0
-                if property.IsComplex
-        ~}}
-            {{ property.Name.PascalCase }} = new {{ property.Type }}
+    {{~for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+        {{~if parameter.IsComplex ~}}
+            {{ parameter.Name.PascalCase }} = new {{ parameter.Type }}
             {
-            {{~ for nestedProperty in property.NestedProperties ~}}
-                {{ nestedProperty.Name.PascalCase }} = command.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
-            {{~ end ~}}
+            {{~for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
+            {{~end~}}
             },
-        {{~     else
-        ~}}
-            {{ property.Name.PascalCase }} = command.{{ property.Name.PascalCase }},
-        {{~     end
-            end
-        end ~}}
-        {{ MapProperties AggregateRoot.Properties }}
+        {{~else~}}
+            {{ parameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }},
+        {{~end~}}
+    {{~end~}}
         };
+{{~end~}}
+{{~if AggregateRoot.CreateUseCase.Mechanism == 'StaticCreateMethod' ~}}
+        {{ AggregateRoot.Name.CamelCase }} = {{ AggregateRoot.Name }}.Create(
+    {{~for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+        {{~if parameter.IsComplex ~}}
+            new {{ parameter.Type }}
+            {
+            {{~for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
+            {{~end~}}
+            }{{if !for.last}},{{end}}
+        {{~else~}}
+            command.{{ parameter.Name.PascalCase }}{{if !for.last}},{{end}}
+        {{~end~}}
+    {{~end~}}
+        );
+{{~end~}}
+{{~if AggregateRoot.CreateUseCase.Mechanism == 'Constructor' ~}}
+        {{ AggregateRoot.Name.CamelCase }} = new {{ AggregateRoot.Name }}(
+    {{~for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+        {{~if parameter.IsComplex ~}}
+            new {{ parameter.Type }}
+            {
+            {{~for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
+            {{~end~}}
+            }{{if !for.last}},{{end}}
+        {{~else~}}
+            command.{{ parameter.Name.PascalCase }}{{if !for.last}},{{end}}
+        {{~end~}}
+    {{~end~}}
+        );
+{{~end~}}
+{{~if AggregateRoot.CreateUseCase.Mechanism == 'EmptyConstructor' ~}}
+        {{ AggregateRoot.Name.CamelCase }} = new {{ AggregateRoot.Name }}();
+{{~end~}}
 
         await _repository.AddAsync({{ AggregateRoot.Name.CamelCase }}, cancellationToken);
+        
         _logger.LogInformation("Created new {{ AggregateRoot.Name }} with ID: {Id}", {{ AggregateRoot.Name.CamelCase }}.Id);
+
+        return new Create{{ AggregateRoot.Name }}CommandResult
+        {
+            Id = {{ AggregateRoot.Name.CamelCase }}.Id
+        };
     }
 }
 
 ==================== CreateCommandResult ====================
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
-public class Create{{ AggregateRoot.Name }}CommandResult
+/// <summary>
+/// Represents the result of creating a new {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class Create{{ AggregateRoot.Name }}CommandResult
 {
+    /// <summary>
+    /// Gets the unique identifier of the created {{ AggregateRoot.Name }}.
+    /// </summary>
     public required {{ AggregateRoot.IdType }} Id { get; init; }
 }
 
 ==================== CreateCommandValidator ====================
 using LiteBus.Commands.Abstractions;
+using {{ DomainProject.Namespace }};
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
@@ -319,53 +391,59 @@ public class Create{{ AggregateRoot.Name }}CommandValidator : ICommandPreHandler
 }
 
 ==================== CreateRequestModel ====================
-using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
+namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Create;
 
 /// <summary>
 /// Represents a request to create a new {{ AggregateRoot.Name }}.
 /// </summary>
 public class Create{{ AggregateRoot.Name }}Request
 {
-    {{~ func GenerateProperties
-    for property in $0
-        if property.Name != "Id"
-            if property.IsComplex ~}}
+{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
     /// <summary>
-    /// Gets or initializes the {{ property.Name.Humanize }}.
+    /// Gets or sets the {{ parameter.Name.Humanize }}.
     /// </summary>
+    {{~ if parameter.IsRequired ~}}
     [Required]
-    public Create{{ property.Name.PascalCase }}RequestModel {{ property.Name.PascalCase }} { get; init; } = null!;
-            {{~ else ~}}
-    /// <summary>
-    /// Gets or initializes the {{ property.Name.Humanize }}.
-    /// </summary>
-    {{~ if property.IsRequired ~}}
-    [Required]
-    public required {{ property.Type }} {{ property.Name.PascalCase }} { get; init; }
-    {{~ else ~}}
-    public {{ property.Type }}? {{ property.Name.PascalCase }} { get; init; }
     {{~ end ~}}
-            {{~ end
-        end
-    end
-    end ~}}
-    {{ GenerateProperties AggregateRoot.Properties }}
+    public {{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
+
+{{~ end ~}}
 }
 
-{{~ for property in AggregateRoot.Properties ~}}
-{{~ if property.IsComplex ~}}
+{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+{{~ if parameter.IsComplex ~}}
 /// <summary>
-/// Represents the {{ property.Name.Humanize }} request model for creating a {{ AggregateRoot.Name }}.
+/// Represents the {{ parameter.Name.Humanize }} model for creating a {{ AggregateRoot.Name }}.
 /// </summary>
-public class Create{{ property.Name.PascalCase }}RequestModel
+public class {{ parameter.Name.PascalCase }}RequestModel
 {
-    {{ GenerateProperties property.NestedProperties }}
+    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    /// <summary>
+    /// Gets or sets the {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    {{~ if nestedParameter.IsRequired ~}}
+    [Required]
+    {{~ end ~}}
+    public {{ nestedParameter.Type }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
 }
+
 {{~ end ~}}
 {{~ end ~}}
+
+/// <summary>
+/// Represents the response after creating a new {{ AggregateRoot.Name }}.
+/// </summary>
+public class Create{{ AggregateRoot.Name }}Response
+{
+    /// <summary>
+    /// Gets or sets the unique identifier of the created {{ AggregateRoot.Name }}.
+    /// </summary>
+    public required {{ AggregateRoot.IdType }} Id { get; set; }
+}
 
 ==================== GetAllQuery ====================
 using System.Collections.Generic;
@@ -389,6 +467,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiteBus.Queries.Abstractions;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+using {{ DomainProject.Namespace }};
 using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
@@ -465,7 +545,7 @@ public class GetAll{{ AggregateRoot.Name.Plural }}QueryValidator : IQueryPreHand
 
 ==================== GetByIdQuery ====================
 using System;
-using LiteBus.Queries;
+using LiteBus.Queries.Abstractions;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
@@ -487,6 +567,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiteBus.Queries.Abstractions;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+using {{ DomainProject.Namespace }};
 using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
@@ -546,16 +628,24 @@ public class Get{{ AggregateRoot.Name }}ByIdQueryHandler : IQueryHandler<Get{{ A
 ==================== GetByIdQueryValidator ====================
 using LiteBus.Queries.Abstractions;
 
-namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
 
-public class {{ UseCase.Name }}{{ AggregateRoot.Name }}QueryValidator : IQueryPreHandler<{{ UseCase.Name }}{{ AggregateRoot.Name }}Query>
+/// <summary>
+/// Validates the Get{{ AggregateRoot.Name }}ByIdQuery before it is handled.
+/// </summary>
+public class Get{{ AggregateRoot.Name }}ByIdQueryValidator : IQueryPreHandler<Get{{ AggregateRoot.Name }}ByIdQuery>
 {
-    public Task PreHandleAsync({{ UseCase.Name }}{{ AggregateRoot.Name }}Query query, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Validates the Get{{ AggregateRoot.Name }}ByIdQuery.
+    /// </summary>
+    /// <param name="query">The query to validate.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    public Task PreHandleAsync(Get{{ AggregateRoot.Name }}ByIdQuery query, CancellationToken cancellationToken = default)
     {
         // TODO: Implement validation logic here
         // Example:
-        // if (query.SomeProperty == default)
-        //     throw new ValidationException("SomeProperty must have a value.");
+        // if (query.Id == default)
+        //     throw new ValidationException("Id must have a valid value.");
 
         return Task.CompletedTask;
     }
@@ -657,31 +747,45 @@ public class {{ property.Name.PascalCase }}ResponseModel
 
 ==================== UseCaseCommand ====================
 using LiteBus.Commands.Abstractions;
+
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
 
+/// <summary>
+/// Represents a command to {{ UseCase.Name.Humanize }} a {{ AggregateRoot.Name }}.
+/// </summary>
 public sealed class {{ UseCase.Name }}{{ AggregateRoot.Name }}Command : ICommand
 {
-    {{~ func GenerateProperties
-        for parameter in $0
-            if parameter.IsComplex
-    ~}}
-    public {{ parameter.IsRequired ? "required " : "" }}{{ parameter.Name.PascalCase }}CommandModel {{ parameter.Name.PascalCase }} { get; init; }
-    {{~     else
-    ~}}
-    public {{ parameter.Type }} {{ parameter.Name.PascalCase }} { get; init; }
-    {{~     end
-        end
-    end ~}}
-    {{ GenerateProperties UseCase.Parameters }}
+    /// <summary>
+    /// Gets or initializes the unique identifier of the {{ AggregateRoot.Name }}.
+    /// </summary>
+    public required {{ AggregateRoot.IdType }} Id { get; init; }
+
+    {{~ for parameter in UseCase.Parameters ~}}
+    /// <summary>
+    /// Gets or initializes the {{ parameter.Name.Humanize }}.
+    /// </summary>
+    public {{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}CommandModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; init; }{{ if parameter.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
 }
 
-{{~ for parameter in UseCase.Parameters
-    if parameter.IsComplex
-~}}
+{{~ for parameter in UseCase.Parameters ~}}
+{{~ if parameter.IsComplex ~}}
+/// <summary>
+/// Represents the {{ parameter.Name.Humanize }} model for the {{ UseCase.Name.Humanize }} command on {{ AggregateRoot.Name }}.
+/// </summary>
 public sealed class {{ parameter.Name.PascalCase }}CommandModel
 {
-    {{ GenerateProperties parameter.NestedParameters }}
+    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    /// <summary>
+    /// Gets or initializes the {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    public {{ nestedParameter.Type }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
 }
+
+{{~ end ~}}
 {{~ end ~}}
 
 ==================== UseCaseCommandHandler ====================
@@ -739,23 +843,18 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommand
         }
 
         {{ AggregateRoot.Name.CamelCase }}.{{ UseCase.Name }}(
-            {{~ func MapParameters
-                for parameter in $0
-                    if parameter.IsComplex
-            ~}}
+            {{~ for parameter in UseCase.Parameters ~}}
+            {{~ if parameter.IsComplex ~}}
             new {{ parameter.Type }}
             {
                 {{~ for nestedParameter in parameter.NestedParameters ~}}
                 {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
                 {{~ end ~}}
             }{{~ if !for.last ~}},{{~ end ~}}
-            {{~     else
-            ~}}
+            {{~ else ~}}
             command.{{ parameter.Name.PascalCase }}{{~ if !for.last ~}},{{~ end ~}}
-            {{~     end
-                end
-            end ~}}
-            {{ MapParameters UseCase.Parameters }}
+            {{~ end ~}}
+            {{~ end ~}}
         );
 
         await _repository.UpdateAsync({{ AggregateRoot.Name.CamelCase }}, cancellationToken);
@@ -781,48 +880,45 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandValidator : IComma
 
 ==================== UseCaseRequestModel ====================
 using System;
+using System.ComponentModel.DataAnnotations;
 
-namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
+namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
 
 /// <summary>
 /// Represents a request for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
 /// </summary>
 public class {{ UseCase.Name }}{{ AggregateRoot.Name }}Request
 {
+    {{~ for parameter in UseCase.Parameters ~}}
     /// <summary>
-    /// Gets or initializes the unique identifier of the {{ AggregateRoot.Name }}.
+    /// Gets or sets the {{ parameter.Name.Humanize }}.
     /// </summary>
-    public {{ AggregateRoot.IdType }} Id { get; init; }
+    {{~ if parameter.IsRequired ~}}
+    [Required]
+    {{~ end ~}}
+    public {{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
 
-    {{~ func GenerateParameters
-        for parameter in $0
-            if parameter.IsComplex
-    ~}}
-    /// <summary>
-    /// Gets or initializes the {{ parameter.Name.Humanize }}.
-    /// </summary>
-    public {{ parameter.Name.PascalCase }}RequestModel {{ parameter.Name.PascalCase }} { get; init; }
-    {{~     else
-    ~}}
-    /// <summary>
-    /// Gets or initializes the {{ parameter.Name.Humanize }}.
-    /// </summary>
-    public {{ parameter.Type }} {{ parameter.Name.PascalCase }} { get; init; }
-    {{~     end
-        end
-    end ~}}
-    {{~ if UseCase.Parameters.Count > 0 ~}}
-    {{ GenerateParameters UseCase.Parameters }}
-    {{~ else ~}}
-    // TODO: Add additional request properties specific to this use case
     {{~ end ~}}
 }
 
-{{~ for parameter in UseCase.Parameters
-    if parameter.IsComplex
-~}}
+{{~ for parameter in UseCase.Parameters ~}}
+{{~ if parameter.IsComplex ~}}
+/// <summary>
+/// Represents the {{ parameter.Name.Humanize }} model for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
+/// </summary>
 public class {{ parameter.Name.PascalCase }}RequestModel
 {
-    {{ GenerateParameters parameter.NestedParameters }}
+    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    /// <summary>
+    /// Gets or sets the {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    {{~ if nestedParameter.IsRequired ~}}
+    [Required]
+    {{~ end ~}}
+    public {{ nestedParameter.Type }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
 }
+
+{{~ end ~}}
 {{~ end ~}}

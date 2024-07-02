@@ -1,4 +1,6 @@
 using LiteBus.Commands.Abstractions;
+using {{ DomainProject.Namespace }};
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 

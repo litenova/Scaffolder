@@ -15,7 +15,7 @@ public sealed class ApiModelCodeGenerator : ICodeGenerator
         yield return new CodeGenerationSpecification
         {
             TemplateName = "SharedResponseModel",
-            TemplateModel = new { context.AggregateRoot },
+            TemplateModel = new { context.AggregateRoot, context.WebApiProject },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, "Shared", $"{context.AggregateRoot.Name}ResponseModel.cs"))
         };
 
@@ -23,16 +23,8 @@ public sealed class ApiModelCodeGenerator : ICodeGenerator
         yield return new CodeGenerationSpecification
         {
             TemplateName = "CreateRequestModel",
-            TemplateModel = new { context.AggregateRoot, context.ApplicationProject },
+            TemplateModel = new { context.AggregateRoot, context.WebApiProject },
             OutputFile = new FileInfo(Path.Combine(outputDirectory, "Create", $"Create{context.AggregateRoot.Name}Request.cs"))
-        };
-
-        // GetAll request model
-        yield return new CodeGenerationSpecification
-        {
-            TemplateName = "GetAllRequestModel",
-            TemplateModel = new { context.AggregateRoot },
-            OutputFile = new FileInfo(Path.Combine(outputDirectory, "GetAll", $"GetAll{context.AggregateRoot.Name.Plural}Request.cs"))
         };
 
         foreach (var useCase in context.AggregateRoot.UseCases.Where(uc => uc.Name != "Create" && uc.Name != "GetById" && uc.Name != "GetAll"))
@@ -42,7 +34,7 @@ public sealed class ApiModelCodeGenerator : ICodeGenerator
             yield return new CodeGenerationSpecification
             {
                 TemplateName = "UseCaseRequestModel",
-                TemplateModel = new { context.AggregateRoot, UseCase = useCase, context.ApplicationProject },
+                TemplateModel = new { context.AggregateRoot, UseCase = useCase, context.WebApiProject },
                 OutputFile = new FileInfo(Path.Combine(useCaseDirectory, $"{useCase.Name}{context.AggregateRoot.Name}Request.cs"))
             };
         }

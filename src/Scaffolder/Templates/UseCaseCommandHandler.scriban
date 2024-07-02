@@ -52,23 +52,18 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommand
         }
 
         {{ AggregateRoot.Name.CamelCase }}.{{ UseCase.Name }}(
-            {{~ func MapParameters
-                for parameter in $0
-                    if parameter.IsComplex
-            ~}}
+            {{~ for parameter in UseCase.Parameters ~}}
+            {{~ if parameter.IsComplex ~}}
             new {{ parameter.Type }}
             {
                 {{~ for nestedParameter in parameter.NestedParameters ~}}
                 {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
                 {{~ end ~}}
             }{{~ if !for.last ~}},{{~ end ~}}
-            {{~     else
-            ~}}
+            {{~ else ~}}
             command.{{ parameter.Name.PascalCase }}{{~ if !for.last ~}},{{~ end ~}}
-            {{~     end
-                end
-            end ~}}
-            {{ MapParameters UseCase.Parameters }}
+            {{~ end ~}}
+            {{~ end ~}}
         );
 
         await _repository.UpdateAsync({{ AggregateRoot.Name.CamelCase }}, cancellationToken);

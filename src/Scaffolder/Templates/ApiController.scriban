@@ -15,6 +15,8 @@ using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ useC
 {{~ end ~}}
 {{~ end ~}}
 using {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Shared;
+using {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Create;
+using {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.GetAll;
 using LiteBus.Commands.Abstractions;
 using LiteBus.Queries.Abstractions;
 
@@ -51,38 +53,40 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <param name="request">The creation request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created {{ AggregateRoot.Name }} ID.</returns>
-    [HttpPost(Name = "Create{{ AggregateRoot.Name }}")]
-    [ProducesResponseType(typeof(Create{{ AggregateRoot.Name }}CommandResult), StatusCodes.Status201Created)]
+    [HttpPost]
+    [ProducesResponseType(typeof(Create{{ AggregateRoot.Name }}Response), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [SwaggerOperation(Summary = "Create a new {{ AggregateRoot.Name }}", Description = "Creates a new {{ AggregateRoot.Name }} with the provided details.")]
     public async Task<IActionResult> CreateAsync([FromBody] Create{{ AggregateRoot.Name }}Request request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Creating new {{ AggregateRoot.Name }}");
-        
+
         var command = new Create{{ AggregateRoot.Name }}Command
         {
-            {{~ func MapProperties
-            for property in $0
-                if property.Name != "Id"
-                    if property.IsComplex ~}}
-            {{ property.Name.PascalCase }} = new Create{{ property.Name.PascalCase }}CommandModel
+            {{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+            {{~ if parameter.IsComplex ~}}
+            {{ parameter.Name.PascalCase }} = new {{ parameter.Name.PascalCase }}CommandModel
             {
-                {{~ for nestedProperty in property.NestedProperties ~}}
-                {{ nestedProperty.Name.PascalCase }} = request.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
+                {{~ for nestedParameter in parameter.NestedParameters ~}}
+                {{ nestedParameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
                 {{~ end ~}}
             },
-                    {{~ else ~}}
-            {{ property.Name.PascalCase }} = request.{{ property.Name.PascalCase }},
-                    {{~ end
-                end
-            end
-            end ~}}
-            {{ MapProperties AggregateRoot.Properties }}
+            {{~ else ~}}
+            {{ parameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
         };
 
         var result = await _commandMediator.SendAsync(command, cancellationToken);
-        _logger.LogInformation("Created new {{ AggregateRoot.Name }} with ID: {Id}", result.Id);
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = result.Id }, result);
+
+        var response = new Create{{ AggregateRoot.Name }}Response
+        {
+            Id = result.Id
+        };
+
+        _logger.LogInformation("Created new {{ AggregateRoot.Name }} with ID: {Id}", response.Id);
+
+        return CreatedAtAction(nameof(GetByIdAsync), new { id = response.Id }, response);
     }
 
     /// <summary>
@@ -91,7 +95,7 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <param name="id">The {{ AggregateRoot.Name }} identifier.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The requested {{ AggregateRoot.Name }}.</returns>
-    [HttpGet("{id}", Name = "Get{{ AggregateRoot.Name }}ById")]
+    [HttpGet("{id}")]
     [ProducesResponseType(typeof({{ AggregateRoot.Name }}ResponseModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [SwaggerOperation(Summary = "Get a specific {{ AggregateRoot.Name }}", Description = "Retrieves a {{ AggregateRoot.Name }} by its unique identifier.")]
@@ -102,6 +106,12 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
         var query = new Get{{ AggregateRoot.Name }}ByIdQuery { Id = id };
         var result = await _queryMediator.QueryAsync(query, cancellationToken);
 
+        if (result == null)
+        {
+            _logger.LogWarning("{{ AggregateRoot.Name }} with ID: {Id} not found", id);
+            return NotFound();
+        }
+
         var responseModel = MapToResponseModel(result);
         _logger.LogInformation("Retrieved {{ AggregateRoot.Name }} with ID: {Id}", id);
         return Ok(responseModel);
@@ -110,23 +120,16 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <summary>
     /// Retrieves all {{ AggregateRoot.Name.Plural }}.
     /// </summary>
-    /// <param name="request">The retrieval request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of {{ AggregateRoot.Name.Plural }}.</returns>
-    [HttpGet(Name = "GetAll{{ AggregateRoot.Name.Plural }}")]
-    [ProducesResponseType(typeof(IEnumerable<{{ AggregateRoot.Name }}ResponseModel>), StatusCodes.Status200OK)]
-    [SwaggerOperation(Summary = "Get all {{ AggregateRoot.Name.Plural }}", Description = "Retrieves all {{ AggregateRoot.Name.Plural }} with optional pagination.")]
-    public async Task<ActionResult<IEnumerable<{{ AggregateRoot.Name }}ResponseModel>>> GetAllAsync([FromQuery] GetAll{{ AggregateRoot.Name.Plural }}Request request, CancellationToken cancellationToken)
+    [HttpGet]
+    [ProducesResponseType(typeof(IAsyncEnumerable<{{ AggregateRoot.Name }}ResponseModel>), StatusCodes.Status200OK)]
+    [SwaggerOperation(Summary = "Get all {{ AggregateRoot.Name.Plural }}", Description = "Retrieves all {{ AggregateRoot.Name.Plural }}.")]
+    public IAsyncEnumerable<{{ AggregateRoot.Name }}ResponseModel> GetAllAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Retrieving all {{ AggregateRoot.Name.Plural }}");
         
-        var query = new GetAll{{ AggregateRoot.Name.Plural }}Query
-        {
-            PageNumber = request.PageNumber,
-            PageSize = request.PageSize,
-            SortBy = request.SortBy,
-            SortDescending = request.SortDescending
-        };
+        var query = new GetAll{{ AggregateRoot.Name.Plural }}Query();
 
         var results = await _queryMediator.QueryAsync(query, cancellationToken);
         var responseModels = results.Select(MapToResponseModel);
@@ -144,7 +147,7 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
     /// <param name="request">The {{ useCase.Name.Humanize }} request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The result of the {{ useCase.Name.Humanize }} operation.</returns>
-    [HttpPatch("{id}/{{ useCase.Name.Kebabcase }}", Name = "{{ useCase.Name }}{{ AggregateRoot.Name }}")]
+    [HttpPatch("{id}/{{ useCase.Name.Kebabcase }}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -156,21 +159,18 @@ public class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
         var command = new {{ useCase.Name }}{{ AggregateRoot.Name }}Command
         {
             Id = id,
-            {{~ func MapParameters
-            for parameter in $0
-                if parameter.IsComplex ~}}
+            {{~ for parameter in useCase.Parameters ~}}
+            {{~ if parameter.IsComplex ~}}
             {{ parameter.Name.PascalCase }} = new {{ parameter.Name.PascalCase }}CommandModel
             {
                 {{~ for nestedParameter in parameter.NestedParameters ~}}
                 {{ nestedParameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
                 {{~ end ~}}
             },
-                {{~ else ~}}
+            {{~ else ~}}
             {{ parameter.Name.PascalCase }} = request.{{ parameter.Name.PascalCase }},
-                {{~ end
-            end
-            end ~}}
-            {{ MapParameters useCase.Parameters }}
+            {{~ end ~}}
+            {{~ end ~}}
         };
 
         await _commandMediator.SendAsync(command, cancellationToken);

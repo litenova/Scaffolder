@@ -1,47 +1,53 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
+namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Create;
 
 /// <summary>
 /// Represents a request to create a new {{ AggregateRoot.Name }}.
 /// </summary>
 public class Create{{ AggregateRoot.Name }}Request
 {
-    {{~ func GenerateProperties
-    for property in $0
-        if property.Name != "Id"
-            if property.IsComplex ~}}
+{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
     /// <summary>
-    /// Gets or initializes the {{ property.Name.Humanize }}.
+    /// Gets or sets the {{ parameter.Name.Humanize }}.
     /// </summary>
+    {{~ if parameter.IsRequired ~}}
     [Required]
-    public Create{{ property.Name.PascalCase }}RequestModel {{ property.Name.PascalCase }} { get; init; } = null!;
-            {{~ else ~}}
-    /// <summary>
-    /// Gets or initializes the {{ property.Name.Humanize }}.
-    /// </summary>
-    {{~ if property.IsRequired ~}}
-    [Required]
-    public required {{ property.Type }} {{ property.Name.PascalCase }} { get; init; }
-    {{~ else ~}}
-    public {{ property.Type }}? {{ property.Name.PascalCase }} { get; init; }
     {{~ end ~}}
-            {{~ end
-        end
-    end
-    end ~}}
-    {{ GenerateProperties AggregateRoot.Properties }}
+    public {{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
+
+{{~ end ~}}
 }
 
-{{~ for property in AggregateRoot.Properties ~}}
-{{~ if property.IsComplex ~}}
+{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+{{~ if parameter.IsComplex ~}}
 /// <summary>
-/// Represents the {{ property.Name.Humanize }} request model for creating a {{ AggregateRoot.Name }}.
+/// Represents the {{ parameter.Name.Humanize }} model for creating a {{ AggregateRoot.Name }}.
 /// </summary>
-public class Create{{ property.Name.PascalCase }}RequestModel
+public class {{ parameter.Name.PascalCase }}RequestModel
 {
-    {{ GenerateProperties property.NestedProperties }}
+    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    /// <summary>
+    /// Gets or sets the {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    {{~ if nestedParameter.IsRequired ~}}
+    [Required]
+    {{~ end ~}}
+    public {{ nestedParameter.Type }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
 }
+
 {{~ end ~}}
 {{~ end ~}}
+
+/// <summary>
+/// Represents the response after creating a new {{ AggregateRoot.Name }}.
+/// </summary>
+public class Create{{ AggregateRoot.Name }}Response
+{
+    /// <summary>
+    /// Gets or sets the unique identifier of the created {{ AggregateRoot.Name }}.
+    /// </summary>
+    public required {{ AggregateRoot.IdType }} Id { get; set; }
+}
