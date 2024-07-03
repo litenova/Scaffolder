@@ -31,6 +31,21 @@ public sealed class MemberDescriptor
     public bool IsComplex { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the member is a collection.
+    /// </summary>
+    public bool IsCollection { get; }
+
+    /// <summary>
+    /// Gets the element type if the member is a collection, null otherwise.
+    /// </summary>
+    public string? ElementType { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the collection's element type is complex.
+    /// </summary>
+    public bool IsElementTypeComplex { get; }
+
+    /// <summary>
     /// Gets the nested members if this member is of a complex type.
     /// </summary>
     public ImmutableArray<MemberDescriptor> NestedMembers { get; }
@@ -67,6 +82,9 @@ public sealed class MemberDescriptor
         string type,
         bool isRequired,
         bool isComplex,
+        bool isCollection,
+        string? elementType,
+        bool isElementTypeComplex,
         ImmutableArray<MemberDescriptor> nestedMembers,
         MemberKind kind)
     {
@@ -74,6 +92,9 @@ public sealed class MemberDescriptor
         Type = type;
         IsRequired = isRequired;
         IsComplex = isComplex;
+        IsCollection = isCollection;
+        ElementType = elementType;
+        IsElementTypeComplex = isElementTypeComplex;
         NestedMembers = nestedMembers;
         Kind = kind;
     }
@@ -86,21 +107,26 @@ public sealed class MemberDescriptor
     /// <returns>A new MemberDescriptor representing the parameter.</returns>
     public static MemberDescriptor CreateFromParameter(IParameterSymbol parameterSymbol, ILogger logger)
     {
-        var isComplex = IsComplexType(parameterSymbol.Type);
+        var (isComplex, isCollection, elementType, isElementTypeComplex) = AnalyzeType(parameterSymbol.Type);
         var nestedMembers = isComplex ? ExtractNestedMembers(parameterSymbol.Type, logger) : [];
-        var isRequired = parameterSymbol is not { NullableAnnotation: NullableAnnotation.Annotated, HasExplicitDefaultValue: true };
+        var isRequired = !(parameterSymbol.NullableAnnotation == NullableAnnotation.Annotated && parameterSymbol.HasExplicitDefaultValue);
 
         var descriptor = new MemberDescriptor(
             parameterSymbol.Name,
             parameterSymbol.Type.ToString() ?? throw new InvalidOperationException($"Unable to determine type for parameter {parameterSymbol.Name}"),
             isRequired,
             isComplex,
+            isCollection,
+            elementType,
+            isElementTypeComplex,
             nestedMembers,
             MemberKind.Parameter
         );
 
-        logger.LogDebug("Created parameter member: {Name}, Type: {Type}, IsRequired: {IsRequired}, IsComplex: {IsComplex}, NestedMembersCount: {NestedMembersCount}",
-            descriptor.Name, descriptor.Type, descriptor.IsRequired, descriptor.IsComplex, descriptor.NestedMembers.Length);
+        logger.LogDebug(
+            "Created parameter member: {Name}, Type: {Type}, IsRequired: {IsRequired}, IsComplex: {IsComplex}, IsCollection: {IsCollection}, ElementType: {ElementType}, IsElementTypeComplex: {IsElementTypeComplex}, NestedMembersCount: {NestedMembersCount}",
+            descriptor.Name, descriptor.Type, descriptor.IsRequired, descriptor.IsComplex, descriptor.IsCollection, descriptor.ElementType, descriptor.IsElementTypeComplex,
+            descriptor.NestedMembers.Length);
 
         return descriptor;
     }
@@ -113,7 +139,7 @@ public sealed class MemberDescriptor
     /// <returns>A new MemberDescriptor representing the property.</returns>
     public static MemberDescriptor CreateFromProperty(IPropertySymbol propertySymbol, ILogger logger)
     {
-        var isComplex = IsComplexType(propertySymbol.Type);
+        var (isComplex, isCollection, elementType, isElementTypeComplex) = AnalyzeType(propertySymbol.Type);
         var nestedMembers = isComplex ? ExtractNestedMembers(propertySymbol.Type, logger) : [];
 
         var descriptor = new MemberDescriptor(
@@ -121,12 +147,17 @@ public sealed class MemberDescriptor
             propertySymbol.Type.ToString() ?? throw new InvalidOperationException($"Unable to determine type for property {propertySymbol.Name}"),
             propertySymbol.IsRequired,
             isComplex,
+            isCollection,
+            elementType,
+            isElementTypeComplex,
             nestedMembers,
             MemberKind.Property
         );
 
-        logger.LogDebug("Created property member: {Name}, Type: {Type}, IsRequired: {IsRequired}, IsComplex: {IsComplex}, NestedMembersCount: {NestedMembersCount}",
-            descriptor.Name, descriptor.Type, descriptor.IsRequired, descriptor.IsComplex, descriptor.NestedMembers.Length);
+        logger.LogDebug(
+            "Created property member: {Name}, Type: {Type}, IsRequired: {IsRequired}, IsComplex: {IsComplex}, IsCollection: {IsCollection}, ElementType: {ElementType}, IsElementTypeComplex: {IsElementTypeComplex}, NestedMembersCount: {NestedMembersCount}",
+            descriptor.Name, descriptor.Type, descriptor.IsRequired, descriptor.IsComplex, descriptor.IsCollection, descriptor.ElementType, descriptor.IsElementTypeComplex,
+            descriptor.NestedMembers.Length);
 
         return descriptor;
     }
@@ -153,17 +184,39 @@ public sealed class MemberDescriptor
         return [.. properties.Select(prop => CreateFromProperty(prop, logger))];
     }
 
-    private static bool IsComplexType(ITypeSymbol typeSymbol)
+    private static (bool IsComplex, bool IsCollection, string? ElementType, bool IsElementTypeComplex) AnalyzeType(ITypeSymbol typeSymbol)
     {
-        if (typeSymbol.IsValueType || typeSymbol.SpecialType != SpecialType.None)
-            return false;
-
-        if (typeSymbol is INamedTypeSymbol { TypeArguments.Length: > 0 } namedType)
+        if (typeSymbol is IArrayTypeSymbol arrayType)
         {
-            return namedType.TypeArguments.Any(IsComplexType);
+            var (isElementComplex, _, _, _) = AnalyzeType(arrayType.ElementType);
+            return (true, true, arrayType.ElementType.ToString(), isElementComplex);
         }
 
-        return true;
+        if (typeSymbol is INamedTypeSymbol namedType)
+        {
+            if (IsCollectionType(namedType))
+            {
+                var elementType = namedType.TypeArguments.FirstOrDefault();
+                if (elementType != null)
+                {
+                    var (isElementComplex, _, _, _) = AnalyzeType(elementType);
+                    return (true, true, elementType.ToString(), isElementComplex);
+                }
+            }
+
+            if (namedType.TypeKind == TypeKind.Class && namedType.SpecialType == SpecialType.None)
+            {
+                return (true, false, null, false);
+            }
+        }
+
+        return (false, false, null, false);
+    }
+
+    private static bool IsCollectionType(INamedTypeSymbol namedType)
+    {
+        return namedType.AllInterfaces.Any(i => i.Name == "IEnumerable" || i.Name == "ICollection" || i.Name == "IList")
+               || namedType.Name == "IEnumerable" || namedType.Name == "ICollection" || namedType.Name == "IList";
     }
 
     private static ImmutableArray<MemberDescriptor> ExtractNestedMembers(ITypeSymbol typeSymbol, ILogger logger)
@@ -172,6 +225,7 @@ public sealed class MemberDescriptor
         [
             .. typeSymbol.GetMembers()
                 .OfType<IPropertySymbol>()
+                .Where(member => member.DeclaredAccessibility == Accessibility.Public)
                 .Select(member => CreateFromProperty(member, logger))
         ];
     }

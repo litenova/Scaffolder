@@ -5,7 +5,7 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Get
 /// <summary>
 /// Validates the Get{{ AggregateRoot.Name }}ByIdQuery before it is handled.
 /// </summary>
-public class Get{{ AggregateRoot.Name }}ByIdQueryValidator : IQueryPreHandler<Get{{ AggregateRoot.Name }}ByIdQuery>
+internal sealed class Get{{ AggregateRoot.Name }}ByIdQueryValidator : IQueryPreHandler<Get{{ AggregateRoot.Name }}ByIdQuery>
 {
     /// <summary>
     /// Validates the Get{{ AggregateRoot.Name }}ByIdQuery.

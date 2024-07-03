@@ -136,7 +136,7 @@ public sealed class AggregateRootDescriptor
         {
             foreach (var member in typeSymbol.GetMembers().OfType<IPropertySymbol>())
             {
-                if (!seenProperties.Add(member.Name) || member.Name == "Events" || member.Name == "Identifier" ||
+                if (!seenProperties.Add(member.Name) || member.Name == "Events" || member.Name == "Identifier" || 
                     member.GetMethod?.DeclaredAccessibility != Accessibility.Public)
                     continue;
 

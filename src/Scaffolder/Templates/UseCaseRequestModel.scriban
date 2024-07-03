@@ -1,40 +1,60 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
 
 /// <summary>
-/// Represents a request for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
+/// Represents a request model for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
 /// </summary>
-public class {{ UseCase.Name }}{{ AggregateRoot.Name }}Request
+public class {{ UseCase.Name }}{{ AggregateRoot.Name }}RequestModel
 {
-    {{~ for parameter in UseCase.Parameters ~}}
+{{~ for parameter in UseCase.Parameters ~}}
     /// <summary>
-    /// Gets or sets the {{ parameter.Name.Humanize }}.
+    /// Gets or sets {{ parameter.Name.Humanize }}.
     /// </summary>
     {{~ if parameter.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
+    public {{ if parameter.IsCollection }}IEnumerable<{{ if parameter.IsElementTypeComplex }}{{ parameter.ElementType }}RequestModel{{ else }}{{ parameter.ElementType }}{{ end }}>{{ else if parameter.IsComplex }}{{ parameter.Type }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
 
-    {{~ end ~}}
+{{~ end ~}}
 }
 
 {{~ for parameter in UseCase.Parameters ~}}
 {{~ if parameter.IsComplex ~}}
 /// <summary>
-/// Represents the {{ parameter.Name.Humanize }} model for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
+/// Represents the {{ parameter.Type }} model for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
 /// </summary>
-public class {{ parameter.Name.PascalCase }}RequestModel
+public class {{ parameter.Type }}RequestModel
 {
-    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    {{~ for nestedParameter in parameter.NestedMembers ~}}
     /// <summary>
-    /// Gets or sets the {{ nestedParameter.Name.Humanize }}.
+    /// Gets or sets {{ nestedParameter.Name.Humanize }}.
     /// </summary>
     {{~ if nestedParameter.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ nestedParameter.Type }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}RequestModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}RequestModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
+}
+
+{{~ end ~}}
+{{~ if parameter.IsCollection && parameter.IsElementTypeComplex ~}}
+/// <summary>
+/// Represents the {{ parameter.ElementType }} model for the {{ UseCase.Name.Humanize }} operation on {{ AggregateRoot.Name }}.
+/// </summary>
+public class {{ parameter.ElementType }}RequestModel
+{
+    {{~ for nestedParameter in parameter.NestedMembers ~}}
+    /// <summary>
+    /// Gets or sets {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    {{~ if nestedParameter.IsRequired ~}}
+    [Required]
+    {{~ end ~}}
+    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}RequestModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}RequestModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }

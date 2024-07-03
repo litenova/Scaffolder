@@ -2,7 +2,7 @@ using LiteBus.Queries.Abstractions;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
 
-public class GetAll{{ AggregateRoot.Name.Plural }}QueryValidator : IQueryPreHandler<GetAll{{ AggregateRoot.Name.Plural }}Query>
+internal sealed class GetAll{{ AggregateRoot.Name.Plural }}QueryValidator : IQueryPreHandler<GetAll{{ AggregateRoot.Name.Plural }}Query>
 {
     public Task PreHandleAsync(GetAll{{ AggregateRoot.Name.Plural }}Query query, CancellationToken cancellationToken = default)
     {

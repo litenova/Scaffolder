@@ -9,41 +9,52 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Sha
 public class {{ AggregateRoot.Name }}QueryResult
 {
     /// <summary>
-    /// Gets the unique identifier of the {{ AggregateRoot.Name }}.
+    /// Gets or initializes the unique identifier of the {{ AggregateRoot.Name }}.
     /// </summary>
     public required {{ AggregateRoot.IdType }} Id { get; init; }
 
-    {{ for property in AggregateRoot.Properties }}
-    {{ if property.Name.Original != "Id" }}
+    {{~ for property in AggregateRoot.Properties ~}}
+    {{~ if property.Name.Original != "Id" ~}}
     /// <summary>
-    /// Gets the {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
+    /// Gets or initializes {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
     /// </summary>
-    {{ if property.IsRequired }}
-    public required {{ property.Type }} {{ property.Name.PascalCase }} { get; init; }
-    {{ else }}
-    public {{ property.Type }}? {{ property.Name.PascalCase }} { get; init; }
-    {{ end }}
-    {{ end }}
-    {{ end }}
+    public {{ if property.IsCollection }}IEnumerable<{{ if property.IsElementTypeComplex }}{{ property.ElementType }}QueryResult{{ else }}{{ property.ElementType }}{{ end }}>{{ else if property.IsComplex }}{{ property.Type }}QueryResult{{ else }}{{ property.Type }}{{ end }}{{ if !property.IsRequired }}?{{ end }} {{ property.Name.PascalCase }} { get; init; }{{ if property.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
+    {{~ end ~}}
 }
 
-{{ for property in AggregateRoot.Properties }}
-{{ if property.IsComplex }}
+{{~ for property in AggregateRoot.Properties ~}}
+{{~ if property.IsComplex ~}}
 /// <summary>
-/// Represents the {{ property.Name.Humanize }} of a {{ AggregateRoot.Name }}.
+/// Represents the {{ property.Type }} of a {{ AggregateRoot.Name }}.
 /// </summary>
-public class {{ property.Name.PascalCase }}QueryResult
+public class {{ property.Type }}QueryResult
 {
-    {{ for nestedProperty in property.NestedProperties }}
+    {{~ for nestedProperty in property.NestedMembers ~}}
     /// <summary>
-    /// Gets the {{ nestedProperty.Name.Humanize }} of the {{ property.Name.Humanize }}.
+    /// Gets or initializes {{ nestedProperty.Name.Humanize }} of the {{ property.Type }}.
     /// </summary>
-    {{ if nestedProperty.IsRequired }}
-    public required {{ nestedProperty.Type }} {{ nestedProperty.Name.PascalCase }} { get; init; }
-    {{ else }}
-    public {{ nestedProperty.Type }}? {{ nestedProperty.Name.PascalCase }} { get; init; }
-    {{ end }}
-    {{ end }}
+    public {{ if nestedProperty.IsCollection }}IEnumerable<{{ if nestedProperty.IsElementTypeComplex }}{{ nestedProperty.ElementType }}QueryResult{{ else }}{{ nestedProperty.ElementType }}{{ end }}>{{ else if nestedProperty.IsComplex }}{{ nestedProperty.Type }}QueryResult{{ else }}{{ nestedProperty.Type }}{{ end }}{{ if !nestedProperty.IsRequired }}?{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }{{ if nestedProperty.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
 }
-{{ end }}
-{{ end }}
+
+{{~ end ~}}
+{{~ if property.IsCollection && property.IsElementTypeComplex ~}}
+/// <summary>
+/// Represents the {{ property.ElementType }} of a {{ AggregateRoot.Name }}.
+/// </summary>
+public class {{ property.ElementType }}QueryResult
+{
+    {{~ for nestedProperty in property.NestedMembers ~}}
+    /// <summary>
+    /// Gets or initializes {{ nestedProperty.Name.Humanize }} of the {{ property.ElementType }}.
+    /// </summary>
+    public {{ if nestedProperty.IsCollection }}IEnumerable<{{ if nestedProperty.IsElementTypeComplex }}{{ nestedProperty.ElementType }}QueryResult{{ else }}{{ nestedProperty.ElementType }}{{ end }}>{{ else if nestedProperty.IsComplex }}{{ nestedProperty.Type }}QueryResult{{ else }}{{ nestedProperty.Type }}{{ end }}{{ if !nestedProperty.IsRequired }}?{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }{{ if nestedProperty.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
+}
+
+{{~ end ~}}
+{{~ end ~}}

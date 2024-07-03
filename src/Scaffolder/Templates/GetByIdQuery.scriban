@@ -7,7 +7,7 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Get
 /// <summary>
 /// Represents a query to retrieve a {{ AggregateRoot.Name }} by its identifier.
 /// </summary>
-public class Get{{ AggregateRoot.Name }}ByIdQuery : IQuery<{{ AggregateRoot.Name }}QueryResult>
+public sealed class Get{{ AggregateRoot.Name }}ByIdQuery : IQuery<{{ AggregateRoot.Name }}QueryResult>
 {
     /// <summary>
     /// Gets or sets the unique identifier of the {{ AggregateRoot.Name }} to retrieve.

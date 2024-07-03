@@ -1,10 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using LiteBus.Queries.Abstractions;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
-using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using {{ DomainProject.Namespace }};
+using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetById;
@@ -12,7 +13,7 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Get
 /// <summary>
 /// Handles the retrieval of a {{ AggregateRoot.Name }} by its identifier.
 /// </summary>
-public class Get{{ AggregateRoot.Name }}ByIdQueryHandler : IQueryHandler<Get{{ AggregateRoot.Name }}ByIdQuery, {{ AggregateRoot.Name }}QueryResult>
+internal sealed class Get{{ AggregateRoot.Name }}ByIdQueryHandler : IQueryHandler<Get{{ AggregateRoot.Name }}ByIdQuery, {{ AggregateRoot.Name }}QueryResult>
 {
     private readonly {{ if Options.UseGenericRepository }}IRepository<{{ AggregateRoot.Name }}>{{ else }}I{{ AggregateRoot.Name }}Repository{{ end }} _repository;
     private readonly ILogger<Get{{ AggregateRoot.Name }}ByIdQueryHandler> _logger;
@@ -44,19 +45,64 @@ public class Get{{ AggregateRoot.Name }}ByIdQueryHandler : IQueryHandler<Get{{ A
 
         _logger.LogInformation("Successfully retrieved {{ AggregateRoot.Name }} with ID: {Id}", query.Id);
 
+        return MapToQueryResult(entity);
+    }
+
+    private static {{ AggregateRoot.Name }}QueryResult MapToQueryResult({{ AggregateRoot.Name }} entity)
+    {
         return new {{ AggregateRoot.Name }}QueryResult
         {
             Id = entity.Id,
-            {{ for property in AggregateRoot.Properties }}
-            {{ if property.Name.Original != "Id" }}
-            {{ property.Name.PascalCase }} = {{ if property.IsComplex }}new {{ property.Name.PascalCase }}QueryResult
-            {
-                {{ for nestedProperty in property.NestedProperties }}
-                {{ nestedProperty.Name.PascalCase }} = entity.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
-                {{ end }}
-            }{{ else }}entity.{{ property.Name.PascalCase }}{{ end }},
-            {{ end }}
-            {{ end }}
+            {{~ for property in AggregateRoot.Properties ~}}
+            {{~ if property.Name.Original != "Id" ~}}
+            {{~ if property.IsComplex ~}}
+            {{ property.Name.PascalCase }} = MapTo{{ property.Type }}QueryResult(entity.{{ property.Name.PascalCase }}),
+            {{~ else if property.IsCollection && property.IsElementTypeComplex ~}}
+            {{ property.Name.PascalCase }} = MapTo{{ property.ElementType }}QueryResultCollection(entity.{{ property.Name.PascalCase }}),
+            {{~ else ~}}
+            {{ property.Name.PascalCase }} = entity.{{ property.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
+            {{~ end ~}}
         };
     }
+
+    {{~ for property in AggregateRoot.Properties ~}}
+    {{~ if property.IsComplex ~}}
+    private static {{ property.Type }}QueryResult MapTo{{ property.Type }}QueryResult({{ property.Type }} entity)
+    {
+        return new {{ property.Type }}QueryResult
+        {
+            {{~ for nestedProperty in property.NestedMembers ~}}
+            {{~ if nestedProperty.IsComplex ~}}
+            {{ nestedProperty.Name.PascalCase }} = MapTo{{ nestedProperty.Type }}QueryResult(entity.{{ nestedProperty.Name.PascalCase }}),
+            {{~ else if nestedProperty.IsCollection && nestedProperty.IsElementTypeComplex ~}}
+            {{ nestedProperty.Name.PascalCase }} = MapTo{{ nestedProperty.ElementType }}QueryResultCollection(entity.{{ nestedProperty.Name.PascalCase }}),
+            {{~ else ~}}
+            {{ nestedProperty.Name.PascalCase }} = entity.{{ nestedProperty.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
+        };
+    }
+
+    {{~ end ~}}
+    {{~ if property.IsCollection && property.IsElementTypeComplex ~}}
+    private static IEnumerable<{{ property.ElementType }}QueryResult> MapTo{{ property.ElementType }}QueryResultCollection(IEnumerable<{{ property.ElementType }}> entities)
+    {
+        return entities.Select(entity => new {{ property.ElementType }}QueryResult
+        {
+            {{~ for nestedProperty in property.NestedMembers ~}}
+            {{~ if nestedProperty.IsComplex ~}}
+            {{ nestedProperty.Name.PascalCase }} = MapTo{{ nestedProperty.Type }}QueryResult(entity.{{ nestedProperty.Name.PascalCase }}),
+            {{~ else if nestedProperty.IsCollection && nestedProperty.IsElementTypeComplex ~}}
+            {{ nestedProperty.Name.PascalCase }} = MapTo{{ nestedProperty.ElementType }}QueryResultCollection(entity.{{ nestedProperty.Name.PascalCase }}),
+            {{~ else ~}}
+            {{ nestedProperty.Name.PascalCase }} = entity.{{ nestedProperty.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
+        });
+    }
+
+    {{~ end ~}}
+    {{~ end ~}}
 }

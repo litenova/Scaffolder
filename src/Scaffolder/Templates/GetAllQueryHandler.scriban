@@ -1,11 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using LiteBus.Queries.Abstractions;
 using {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Shared;
 using {{ DomainProject.Namespace }};
 using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.GetAll;
@@ -13,7 +14,7 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Get
 /// <summary>
 /// Handles the retrieval of all {{ AggregateRoot.Name.Plural }}.
 /// </summary>
-public class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IStreamQueryHandler<GetAll{{ AggregateRoot.Name.Plural }}Query, {{ AggregateRoot.Name }}QueryResult>
+internal sealed class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IStreamQueryHandler<GetAll{{ AggregateRoot.Name.Plural }}Query, {{ AggregateRoot.Name }}QueryResult>
 {
     private readonly {{ if Options.UseGenericRepository }}IRepository<{{ AggregateRoot.Name }}>{{ else }}I{{ AggregateRoot.Name }}Repository{{ end }} _repository;
     private readonly ILogger<GetAll{{ AggregateRoot.Name.Plural }}QueryHandler> _logger;
@@ -32,28 +33,80 @@ public class GetAll{{ AggregateRoot.Name.Plural }}QueryHandler : IStreamQueryHan
     }
 
     /// <summary>
-    /// Handles the GetAll{{ AggregateRoot.Name.Plural }}Query and returns the corresponding collection of {{ AggregateRoot.Name }}QueryResult.
+    /// Handles the GetAll{{ AggregateRoot.Name.Plural }}Query and returns a stream of {{ AggregateRoot.Name }}QueryResult.
     /// </summary>
     /// <param name="query">The query to retrieve all {{ AggregateRoot.Name.Plural }}.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>An IAsyncEnumerable representing the asynchronous stream of {{ AggregateRoot.Name }}QueryResult.</returns>
-    public IAsyncEnumerable<{{ AggregateRoot.Name }}QueryResult> StreamAsync(GetAll{{ AggregateRoot.Name.Plural }}Query query, CancellationToken cancellationToken = default)
+    /// <returns>An IAsyncEnumerable of {{ AggregateRoot.Name }}QueryResult.</returns>
+    public async IAsyncEnumerable<{{ AggregateRoot.Name }}QueryResult> StreamAsync(GetAll{{ AggregateRoot.Name.Plural }}Query query, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Retrieving all {{ AggregateRoot.Name.Plural }}");
 
-        return _repository.GetAllAsync(cancellationToken).Select(entity => new {{ AggregateRoot.Name }}QueryResult
+        var entities = _repository.GetAllAsync(cancellationToken);
+
+        await foreach (var entity in entities)
+        {
+            yield return MapToQueryResult(entity);
+        }
+
+        _logger.LogInformation("Finished streaming {{ AggregateRoot.Name.Plural }}");
+    }
+
+    private static {{ AggregateRoot.Name }}QueryResult MapToQueryResult({{ AggregateRoot.Name }} entity)
+    {
+        return new {{ AggregateRoot.Name }}QueryResult
         {
             Id = entity.Id,
             {{~ for property in AggregateRoot.Properties ~}}
             {{~ if property.Name.Original != "Id" ~}}
-            {{ property.Name.PascalCase }} = {{ if property.IsComplex }}new {{ property.Name.PascalCase }}QueryResult
-            {
-                {{~ for nestedProperty in property.NestedProperties ~}}
-                {{ nestedProperty.Name.PascalCase }} = entity.{{ property.Name.PascalCase }}.{{ nestedProperty.Name.PascalCase }},
-                {{~ end ~}}
-            }{{ else }}entity.{{ property.Name.PascalCase }}{{ end }},
+            {{~ if property.IsComplex ~}}
+            {{ property.Name.PascalCase }} = MapTo{{ property.Type }}QueryResult(entity.{{ property.Name.PascalCase }}),
+            {{~ else if property.IsCollection && property.IsElementTypeComplex ~}}
+            {{ property.Name.PascalCase }} = MapTo{{ property.ElementType }}QueryResultCollection(entity.{{ property.Name.PascalCase }}),
+            {{~ else ~}}
+            {{ property.Name.PascalCase }} = entity.{{ property.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
+            {{~ end ~}}
+        };
+    }
+
+    {{~ for property in AggregateRoot.Properties ~}}
+    {{~ if property.IsComplex ~}}
+    private static {{ property.Type }}QueryResult MapTo{{ property.Type }}QueryResult({{ property.Type }} entity)
+    {
+        return new {{ property.Type }}QueryResult
+        {
+            {{~ for nestedProperty in property.NestedMembers ~}}
+            {{~ if nestedProperty.IsComplex ~}}
+            {{ nestedProperty.Name.PascalCase }} = MapTo{{ nestedProperty.Type }}QueryResult(entity.{{ nestedProperty.Name.PascalCase }}),
+            {{~ else if nestedProperty.IsCollection && nestedProperty.IsElementTypeComplex ~}}
+            {{ nestedProperty.Name.PascalCase }} = MapTo{{ nestedProperty.ElementType }}QueryResultCollection(entity.{{ nestedProperty.Name.PascalCase }}),
+            {{~ else ~}}
+            {{ nestedProperty.Name.PascalCase }} = entity.{{ nestedProperty.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
+        };
+    }
+
+    {{~ end ~}}
+    {{~ if property.IsCollection && property.IsElementTypeComplex ~}}
+    private static IEnumerable<{{ property.ElementType }}QueryResult> MapTo{{ property.ElementType }}QueryResultCollection(IEnumerable<{{ property.ElementType }}> entities)
+    {
+        return entities.Select(entity => new {{ property.ElementType }}QueryResult
+        {
+            {{~ for nestedProperty in property.NestedMembers ~}}
+            {{~ if nestedProperty.IsComplex ~}}
+            {{ nestedProperty.Name.PascalCase }} = MapTo{{ nestedProperty.Type }}QueryResult(entity.{{ nestedProperty.Name.PascalCase }}),
+            {{~ else if nestedProperty.IsCollection && nestedProperty.IsElementTypeComplex ~}}
+            {{ nestedProperty.Name.PascalCase }} = MapTo{{ nestedProperty.ElementType }}QueryResultCollection(entity.{{ nestedProperty.Name.PascalCase }}),
+            {{~ else ~}}
+            {{ nestedProperty.Name.PascalCase }} = entity.{{ nestedProperty.Name.PascalCase }},
             {{~ end ~}}
             {{~ end ~}}
         });
     }
+
+    {{~ end ~}}
+    {{~ end ~}}
 }

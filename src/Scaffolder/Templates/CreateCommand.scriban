@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using LiteBus.Commands.Abstractions;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
@@ -9,24 +11,39 @@ public sealed class Create{{ AggregateRoot.Name }}Command : ICommand<Create{{ Ag
 {
 {{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
     /// <summary>
-    /// Gets or initializes the {{ parameter.Name.Humanize }}.
+    /// Gets or sets {{ parameter.Name.Humanize }}.
     /// </summary>
-    public {{ if parameter.IsRequired }}required {{ end }}{{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}CommandModel{{ else }}{{ parameter.Type }}{{ end }} {{ parameter.Name.PascalCase }} { get; init; }
+    public {{ if parameter.IsRequired }}required {{ end }}{{ if parameter.IsCollection }}IEnumerable<{{ if parameter.IsElementTypeComplex }}{{ parameter.ElementType }}CommandModel{{ else }}{{ parameter.ElementType }}{{ end }}>{{ else if parameter.IsComplex }}{{ parameter.Type }}CommandModel{{ else }}{{ parameter.Type }}{{ end }} {{ parameter.Name.PascalCase }} { get; init; }
 {{~ end ~}}
 }
 
 {{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
 {{~ if parameter.IsComplex ~}}
 /// <summary>
-/// Represents the {{ parameter.Name.Humanize }} model for creating a {{ AggregateRoot.Name }}.
+/// Represents the {{ parameter.Type }} model for creating a {{ AggregateRoot.Name }}.
 /// </summary>
-public sealed class {{ parameter.Name.PascalCase }}CommandModel
+public sealed class {{ parameter.Type }}CommandModel
 {
-    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    {{~ for nestedParameter in parameter.NestedMembers ~}}
     /// <summary>
-    /// Gets or initializes the {{ nestedParameter.Name.Humanize }}.
+    /// Gets or sets {{ nestedParameter.Name.Humanize }}.
     /// </summary>
-    public {{ if nestedParameter.IsRequired }}required {{ end }}{{ nestedParameter.Type }} {{ nestedParameter.Name.PascalCase }} { get; init; }
+    public {{ if nestedParameter.IsRequired }}required {{ end }}{{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}CommandModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}CommandModel{{ else }}{{ nestedParameter.Type }}{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }
+    {{~ end ~}}
+}
+
+{{~ end ~}}
+{{~ if parameter.IsCollection && parameter.IsElementTypeComplex ~}}
+/// <summary>
+/// Represents the {{ parameter.ElementType }} model for creating a {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class {{ parameter.ElementType }}CommandModel
+{
+    {{~ for nestedParameter in parameter.NestedMembers ~}}
+    /// <summary>
+    /// Gets or sets {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    public {{ if nestedParameter.IsRequired }}required {{ end }}{{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}CommandModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}CommandModel{{ else }}{{ nestedParameter.Type }}{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }
     {{~ end ~}}
 }
 

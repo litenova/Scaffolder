@@ -16,9 +16,10 @@ public class {{ AggregateRoot.Name }}ResponseModel
     {{~ for property in AggregateRoot.Properties ~}}
     {{~ if property.Name.Original != "Id" ~}}
     /// <summary>
-    /// Gets or initializes the {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
+    /// Gets or initializes {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
     /// </summary>
-    public {{ if !property.IsRequired }}{{ property.Type }}?{{ else }}required {{ property.Type }}{{ end }} {{ property.Name.PascalCase }} { get; init; }
+    public {{ if property.IsCollection }}IEnumerable<{{ if property.IsElementTypeComplex }}{{ property.ElementType }}ResponseModel{{ else }}{{ property.ElementType }}{{ end }}>{{ else if property.IsComplex }}{{ property.Type }}ResponseModel{{ else }}{{ property.Type }}{{ end }}{{ if !property.IsRequired }}?{{ end }} {{ property.Name.PascalCase }} { get; init; }{{ if property.IsRequired }} = default!;{{ end }}
+
     {{~ end ~}}
     {{~ end ~}}
 }
@@ -26,16 +27,34 @@ public class {{ AggregateRoot.Name }}ResponseModel
 {{~ for property in AggregateRoot.Properties ~}}
 {{~ if property.IsComplex ~}}
 /// <summary>
-/// Represents the {{ property.Name.Humanize }} of a {{ AggregateRoot.Name }}.
+/// Represents the {{ property.Type }} of a {{ AggregateRoot.Name }}.
 /// </summary>
-public class {{ property.Name.PascalCase }}ResponseModel
+public class {{ property.Type }}ResponseModel
 {
-    {{~ for nestedProperty in property.NestedProperties ~}}
+    {{~ for nestedProperty in property.NestedMembers ~}}
     /// <summary>
-    /// Gets or initializes the {{ nestedProperty.Name.Humanize }} of the {{ property.Name.Humanize }}.
+    /// Gets or initializes {{ nestedProperty.Name.Humanize }} of the {{ property.Type }}.
     /// </summary>
-    public {{ if !nestedProperty.IsRequired }}{{ nestedProperty.Type }}?{{ else }}required {{ nestedProperty.Type }}{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }
+    public {{ if nestedProperty.IsCollection }}IEnumerable<{{ if nestedProperty.IsElementTypeComplex }}{{ nestedProperty.ElementType }}ResponseModel{{ else }}{{ nestedProperty.ElementType }}{{ end }}>{{ else if nestedProperty.IsComplex }}{{ nestedProperty.Type }}ResponseModel{{ else }}{{ nestedProperty.Type }}{{ end }}{{ if !nestedProperty.IsRequired }}?{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }{{ if nestedProperty.IsRequired }} = default!;{{ end }}
+
     {{~ end ~}}
 }
+
+{{~ end ~}}
+{{~ if property.IsCollection && property.IsElementTypeComplex ~}}
+/// <summary>
+/// Represents the {{ property.ElementType }} of a {{ AggregateRoot.Name }}.
+/// </summary>
+public class {{ property.ElementType }}ResponseModel
+{
+    {{~ for nestedProperty in property.NestedMembers ~}}
+    /// <summary>
+    /// Gets or initializes {{ nestedProperty.Name.Humanize }} of the {{ property.ElementType }}.
+    /// </summary>
+    public {{ if nestedProperty.IsCollection }}IEnumerable<{{ if nestedProperty.IsElementTypeComplex }}{{ nestedProperty.ElementType }}ResponseModel{{ else }}{{ nestedProperty.ElementType }}{{ end }}>{{ else if nestedProperty.IsComplex }}{{ nestedProperty.Type }}ResponseModel{{ else }}{{ nestedProperty.Type }}{{ end }}{{ if !nestedProperty.IsRequired }}?{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }{{ if nestedProperty.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
+}
+
 {{~ end ~}}
 {{~ end ~}}

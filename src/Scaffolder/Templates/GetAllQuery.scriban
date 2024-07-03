@@ -7,7 +7,7 @@ namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Get
 /// <summary>
 /// Represents a query to retrieve all {{ AggregateRoot.Name.Plural }}.
 /// </summary>
-public class GetAll{{ AggregateRoot.Name.Plural }}Query : IStreamQuery<{{ AggregateRoot.Name }}QueryResult>
+public sealed class GetAll{{ AggregateRoot.Name.Plural }}Query : IStreamQuery<{{ AggregateRoot.Name }}QueryResult>
 {
     // This query doesn't require any parameters
 }

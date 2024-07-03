@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Create;
@@ -5,49 +7,57 @@ namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.C
 /// <summary>
 /// Represents a request to create a new {{ AggregateRoot.Name }}.
 /// </summary>
-public class Create{{ AggregateRoot.Name }}Request
+public class Create{{ AggregateRoot.Name }}RequestModel
 {
-{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
+{{~ for member in AggregateRoot.CreateUseCase.Parameters ~}}
     /// <summary>
-    /// Gets or sets the {{ parameter.Name.Humanize }}.
+    /// Gets or sets {{ member.Name.Humanize }}.
     /// </summary>
-    {{~ if parameter.IsRequired ~}}
+    {{~ if member.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
+    public {{ if member.IsCollection }}IEnumerable<{{ if member.IsElementTypeComplex }}{{ member.ElementType }}RequestModel{{ else }}{{ member.ElementType }}{{ end }}>{{ else if member.IsComplex }}{{ member.Type }}RequestModel{{ else }}{{ member.Type }}{{ end }}{{ if !member.IsRequired }}?{{ end }} {{ member.Name.PascalCase }} { get; set; }{{ if member.IsRequired }} = default!;{{ end }}
 
 {{~ end ~}}
 }
 
-{{~ for parameter in AggregateRoot.CreateUseCase.Parameters ~}}
-{{~ if parameter.IsComplex ~}}
+{{~ for member in AggregateRoot.CreateUseCase.Parameters ~}}
+{{~ if member.IsComplex ~}}
 /// <summary>
-/// Represents the {{ parameter.Name.Humanize }} model for creating a {{ AggregateRoot.Name }}.
+/// Represents the {{ member.Type }} model for creating a {{ AggregateRoot.Name }}.
 /// </summary>
-public class {{ parameter.Name.PascalCase }}RequestModel
+public class {{ member.Type }}RequestModel
 {
-    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    {{~ for nestedMember in member.NestedMembers ~}}
     /// <summary>
-    /// Gets or sets the {{ nestedParameter.Name.Humanize }}.
+    /// Gets or sets {{ nestedMember.Name.Humanize }}.
     /// </summary>
-    {{~ if nestedParameter.IsRequired ~}}
+    {{~ if nestedMember.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ nestedParameter.Type }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+    public {{ if nestedMember.IsCollection }}IEnumerable<{{ if nestedMember.IsElementTypeComplex }}{{ nestedMember.ElementType }}RequestModel{{ else }}{{ nestedMember.ElementType }}{{ end }}>{{ else if nestedMember.IsComplex }}{{ nestedMember.Type }}RequestModel{{ else }}{{ nestedMember.Type }}{{ end }}{{ if !nestedMember.IsRequired }}?{{ end }} {{ nestedMember.Name.PascalCase }} { get; set; }{{ if nestedMember.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
+}
+
+{{~ end ~}}
+{{~ if member.IsCollection && member.IsElementTypeComplex ~}}
+/// <summary>
+/// Represents the {{ member.ElementType }} model for creating a {{ AggregateRoot.Name }}.
+/// </summary>
+public class {{ member.ElementType }}RequestModel
+{
+    {{~ for nestedMember in member.NestedMembers ~}}
+    /// <summary>
+    /// Gets or sets {{ nestedMember.Name.Humanize }}.
+    /// </summary>
+    {{~ if nestedMember.IsRequired ~}}
+    [Required]
+    {{~ end ~}}
+    public {{ if nestedMember.IsCollection }}IEnumerable<{{ if nestedMember.IsElementTypeComplex }}{{ nestedMember.ElementType }}RequestModel{{ else }}{{ nestedMember.ElementType }}{{ end }}>{{ else if nestedMember.IsComplex }}{{ nestedMember.Type }}RequestModel{{ else }}{{ nestedMember.Type }}{{ end }}{{ if !nestedMember.IsRequired }}?{{ end }} {{ nestedMember.Name.PascalCase }} { get; set; }{{ if nestedMember.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }
 
 {{~ end ~}}
 {{~ end ~}}
-
-/// <summary>
-/// Represents the response after creating a new {{ AggregateRoot.Name }}.
-/// </summary>
-public class Create{{ AggregateRoot.Name }}Response
-{
-    /// <summary>
-    /// Gets or sets the unique identifier of the created {{ AggregateRoot.Name }}.
-    /// </summary>
-    public required {{ AggregateRoot.IdType }} Id { get; set; }
-}

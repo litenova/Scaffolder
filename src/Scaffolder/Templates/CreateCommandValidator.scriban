@@ -4,7 +4,7 @@ using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.Create;
 
-public class Create{{ AggregateRoot.Name }}CommandValidator : ICommandPreHandler<Create{{ AggregateRoot.Name }}Command>
+internal sealed class Create{{ AggregateRoot.Name }}CommandValidator : ICommandPreHandler<Create{{ AggregateRoot.Name }}Command>
 {
     public Task PreHandleAsync(Create{{ AggregateRoot.Name }}Command command, CancellationToken cancellationToken = default)
     {

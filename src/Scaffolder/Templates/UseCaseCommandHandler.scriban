@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using {{ DomainProject.Namespace }};
 using {{ DomainProject.Namespace }}.{{ AggregateRoot.Name.Plural }};
 using LiteBus.Commands.Abstractions;
@@ -6,9 +11,9 @@ using Microsoft.Extensions.Logging;
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
 
 /// <summary>
-/// Handles the {{ UseCase.Name }} command for {{ AggregateRoot.Name }}.
+/// Handles the {{ UseCase.Name.Humanize }} command for {{ AggregateRoot.Name }}.
 /// </summary>
-public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommandHandler<{{ UseCase.Name }}{{ AggregateRoot.Name }}Command>
+internal sealed class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommandHandler<{{ UseCase.Name }}{{ AggregateRoot.Name }}Command>
 {
     {{~ if Options.UseGenericRepository ~}}
     private readonly IRepository<{{ AggregateRoot.Name }}> _repository;
@@ -35,7 +40,7 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommand
     }
 
     /// <summary>
-    /// Handles the {{ UseCase.Name }} command for {{ AggregateRoot.Name }}.
+    /// Handles the {{ UseCase.Name.Humanize }} command for {{ AggregateRoot.Name }}.
     /// </summary>
     /// <param name="command">The command to handle.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -45,21 +50,12 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommand
 
         var {{ AggregateRoot.Name.CamelCase }} = await _repository.GetAsync(command.Id, cancellationToken);
 
-        if ({{ AggregateRoot.Name.CamelCase }} == null)
-        {
-            _logger.LogWarning("{{ AggregateRoot.Name }} with ID: {Id} not found", command.Id);
-            throw new NotFoundException($"{{ AggregateRoot.Name }} with ID {command.Id} not found");
-        }
-
         {{ AggregateRoot.Name.CamelCase }}.{{ UseCase.Name }}(
             {{~ for parameter in UseCase.Parameters ~}}
             {{~ if parameter.IsComplex ~}}
-            new {{ parameter.Type }}
-            {
-                {{~ for nestedParameter in parameter.NestedParameters ~}}
-                {{ nestedParameter.Name.PascalCase }} = command.{{ parameter.Name.PascalCase }}.{{ nestedParameter.Name.PascalCase }},
-                {{~ end ~}}
-            }{{~ if !for.last ~}},{{~ end ~}}
+            MapTo{{ parameter.Type }}(command.{{ parameter.Name.PascalCase }}){{~ if !for.last ~}},{{~ end ~}}
+            {{~ else if parameter.IsCollection && parameter.IsElementTypeComplex ~}}
+            MapTo{{ parameter.ElementType }}Collection(command.{{ parameter.Name.PascalCase }}){{~ if !for.last ~}},{{~ end ~}}
             {{~ else ~}}
             command.{{ parameter.Name.PascalCase }}{{~ if !for.last ~}},{{~ end ~}}
             {{~ end ~}}
@@ -70,4 +66,43 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler : ICommand
         
         _logger.LogInformation("Successfully executed {{ UseCase.Name }} command for {{ AggregateRoot.Name }} with ID: {Id}", command.Id);
     }
+
+    {{~ for parameter in UseCase.Parameters ~}}
+    {{~ if parameter.IsComplex ~}}
+    private static {{ parameter.Type }} MapTo{{ parameter.Type }}({{ parameter.Type }}CommandModel model)
+    {
+        return new {{ parameter.Type }}
+        {
+            {{~ for nestedParameter in parameter.NestedMembers ~}}
+            {{~ if nestedParameter.IsComplex ~}}
+            {{ nestedParameter.Name.PascalCase }} = MapTo{{ nestedParameter.Type }}(model.{{ nestedParameter.Name.PascalCase }}),
+            {{~ else if nestedParameter.IsCollection && nestedParameter.IsElementTypeComplex ~}}
+            {{ nestedParameter.Name.PascalCase }} = MapTo{{ nestedParameter.ElementType }}Collection(model.{{ nestedParameter.Name.PascalCase }}),
+            {{~ else ~}}
+            {{ nestedParameter.Name.PascalCase }} = model.{{ nestedParameter.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
+        };
+    }
+
+    {{~ end ~}}
+    {{~ if parameter.IsCollection && parameter.IsElementTypeComplex ~}}
+    private static IEnumerable<{{ parameter.ElementType }}> MapTo{{ parameter.ElementType }}Collection(IEnumerable<{{ parameter.ElementType }}CommandModel> models)
+    {
+        return models.Select(model => new {{ parameter.ElementType }}
+        {
+            {{~ for nestedParameter in parameter.NestedMembers ~}}
+            {{~ if nestedParameter.IsComplex ~}}
+            {{ nestedParameter.Name.PascalCase }} = MapTo{{ nestedParameter.Type }}(model.{{ nestedParameter.Name.PascalCase }}),
+            {{~ else if nestedParameter.IsCollection && nestedParameter.IsElementTypeComplex ~}}
+            {{ nestedParameter.Name.PascalCase }} = MapTo{{ nestedParameter.ElementType }}Collection(model.{{ nestedParameter.Name.PascalCase }}),
+            {{~ else ~}}
+            {{ nestedParameter.Name.PascalCase }} = model.{{ nestedParameter.Name.PascalCase }},
+            {{~ end ~}}
+            {{~ end ~}}
+        });
+    }
+
+    {{~ end ~}}
+    {{~ end ~}}
 }

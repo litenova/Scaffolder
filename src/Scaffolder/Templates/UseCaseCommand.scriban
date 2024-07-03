@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using LiteBus.Commands.Abstractions;
 
 namespace {{ ApplicationProject.Namespace }}.{{ AggregateRoot.Name.Plural }}.{{ UseCase.Name }};
@@ -14,9 +16,9 @@ public sealed class {{ UseCase.Name }}{{ AggregateRoot.Name }}Command : ICommand
 
     {{~ for parameter in UseCase.Parameters ~}}
     /// <summary>
-    /// Gets or initializes the {{ parameter.Name.Humanize }}.
+    /// Gets or initializes {{ parameter.Name.Humanize }}.
     /// </summary>
-    public {{ if parameter.IsComplex }}{{ parameter.Name.PascalCase }}CommandModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; init; }{{ if parameter.IsRequired }} = default!;{{ end }}
+    public {{ if parameter.IsCollection }}IEnumerable<{{ if parameter.IsElementTypeComplex }}{{ parameter.ElementType }}CommandModel{{ else }}{{ parameter.ElementType }}{{ end }}>{{ else if parameter.IsComplex }}{{ parameter.Type }}CommandModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; init; }{{ if parameter.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }
@@ -24,15 +26,31 @@ public sealed class {{ UseCase.Name }}{{ AggregateRoot.Name }}Command : ICommand
 {{~ for parameter in UseCase.Parameters ~}}
 {{~ if parameter.IsComplex ~}}
 /// <summary>
-/// Represents the {{ parameter.Name.Humanize }} model for the {{ UseCase.Name.Humanize }} command on {{ AggregateRoot.Name }}.
+/// Represents the {{ parameter.Type }} model for the {{ UseCase.Name.Humanize }} command on {{ AggregateRoot.Name }}.
 /// </summary>
-public sealed class {{ parameter.Name.PascalCase }}CommandModel
+public sealed class {{ parameter.Type }}CommandModel
 {
-    {{~ for nestedParameter in parameter.NestedParameters ~}}
+    {{~ for nestedParameter in parameter.NestedMembers ~}}
     /// <summary>
-    /// Gets or initializes the {{ nestedParameter.Name.Humanize }}.
+    /// Gets or initializes {{ nestedParameter.Name.Humanize }}.
     /// </summary>
-    public {{ nestedParameter.Type }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}CommandModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}CommandModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+
+    {{~ end ~}}
+}
+
+{{~ end ~}}
+{{~ if parameter.IsCollection && parameter.IsElementTypeComplex ~}}
+/// <summary>
+/// Represents the {{ parameter.ElementType }} model for the {{ UseCase.Name.Humanize }} command on {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class {{ parameter.ElementType }}CommandModel
+{
+    {{~ for nestedParameter in parameter.NestedMembers ~}}
+    /// <summary>
+    /// Gets or initializes {{ nestedParameter.Name.Humanize }}.
+    /// </summary>
+    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}CommandModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}CommandModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }

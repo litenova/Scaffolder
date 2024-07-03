@@ -1,0 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace {{ WebApiProject.Namespace }}.Models.{{ AggregateRoot.Name.Plural }}.Create;
+
+/// <summary>
+/// Represents a response model for creating a new {{ AggregateRoot.Name }}.
+/// </summary>
+public sealed class Create{{ AggregateRoot.Name }}ResponseModel
+{
+    public required {{ AggregateRoot.IdType }} Id { get; init; }
+}
