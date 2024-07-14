@@ -18,7 +18,7 @@ public sealed class {{ UseCase.Name }}{{ AggregateRoot.Name }}Command : ICommand
     /// <summary>
     /// Gets or initializes {{ parameter.Name.Humanize }}.
     /// </summary>
-    public {{ if parameter.IsCollection }}IEnumerable<{{ if parameter.IsElementTypeComplex }}{{ parameter.ElementType }}CommandModel{{ else }}{{ parameter.ElementType }}{{ end }}>{{ else if parameter.IsComplex }}{{ parameter.Type }}CommandModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; init; }{{ if parameter.IsRequired }} = default!;{{ end }}
+    public {{ if parameter.IsCollection }}IEnumerable<{{ if parameter.IsElementTypeComplex }}{{ parameter.ElementType }}CommandModel{{ else }}{{ parameter.ElementType }}{{ end }}>{{ else if parameter.IsComplex }}{{ parameter.Type }}CommandModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}{{ end }} {{ parameter.Name.PascalCase }} { get; init; }{{ if parameter.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }
@@ -34,7 +34,7 @@ public sealed class {{ parameter.Type }}CommandModel
     /// <summary>
     /// Gets or initializes {{ nestedParameter.Name.Humanize }}.
     /// </summary>
-    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}CommandModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}CommandModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}CommandModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}CommandModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }
@@ -50,7 +50,7 @@ public sealed class {{ parameter.ElementType }}CommandModel
     /// <summary>
     /// Gets or initializes {{ nestedParameter.Name.Humanize }}.
     /// </summary>
-    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}CommandModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}CommandModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}CommandModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}CommandModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}{{ end }} {{ nestedParameter.Name.PascalCase }} { get; init; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }

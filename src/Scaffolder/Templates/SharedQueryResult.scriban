@@ -18,7 +18,7 @@ public class {{ AggregateRoot.Name }}QueryResult
     /// <summary>
     /// Gets or initializes {{ property.Name.Humanize }} of the {{ AggregateRoot.Name }}.
     /// </summary>
-    public {{ if property.IsCollection }}IEnumerable<{{ if property.IsElementTypeComplex }}{{ property.ElementType }}QueryResult{{ else }}{{ property.ElementType }}{{ end }}>{{ else if property.IsComplex }}{{ property.Type }}QueryResult{{ else }}{{ property.Type }}{{ end }}{{ if !property.IsRequired }}?{{ end }} {{ property.Name.PascalCase }} { get; init; }{{ if property.IsRequired }} = default!;{{ end }}
+    public {{ if property.IsCollection }}IEnumerable<{{ if property.IsElementTypeComplex }}{{ property.ElementType }}QueryResult{{ else }}{{ property.ElementType }}{{ end }}>{{ else if property.IsComplex }}{{ property.Type }}QueryResult{{ else }}{{ property.Type }}{{ end }}{{ if !property.IsRequired }}{{ end }} {{ property.Name.PascalCase }} { get; init; }{{ if property.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
     {{~ end ~}}
@@ -35,7 +35,7 @@ public class {{ property.Type }}QueryResult
     /// <summary>
     /// Gets or initializes {{ nestedProperty.Name.Humanize }} of the {{ property.Type }}.
     /// </summary>
-    public {{ if nestedProperty.IsCollection }}IEnumerable<{{ if nestedProperty.IsElementTypeComplex }}{{ nestedProperty.ElementType }}QueryResult{{ else }}{{ nestedProperty.ElementType }}{{ end }}>{{ else if nestedProperty.IsComplex }}{{ nestedProperty.Type }}QueryResult{{ else }}{{ nestedProperty.Type }}{{ end }}{{ if !nestedProperty.IsRequired }}?{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }{{ if nestedProperty.IsRequired }} = default!;{{ end }}
+    public {{ if nestedProperty.IsCollection }}IEnumerable<{{ if nestedProperty.IsElementTypeComplex }}{{ nestedProperty.ElementType }}QueryResult{{ else }}{{ nestedProperty.ElementType }}{{ end }}>{{ else if nestedProperty.IsComplex }}{{ nestedProperty.Type }}QueryResult{{ else }}{{ nestedProperty.Type }}{{ end }}{{ if !nestedProperty.IsRequired }}{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }{{ if nestedProperty.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }
@@ -51,7 +51,7 @@ public class {{ property.ElementType }}QueryResult
     /// <summary>
     /// Gets or initializes {{ nestedProperty.Name.Humanize }} of the {{ property.ElementType }}.
     /// </summary>
-    public {{ if nestedProperty.IsCollection }}IEnumerable<{{ if nestedProperty.IsElementTypeComplex }}{{ nestedProperty.ElementType }}QueryResult{{ else }}{{ nestedProperty.ElementType }}{{ end }}>{{ else if nestedProperty.IsComplex }}{{ nestedProperty.Type }}QueryResult{{ else }}{{ nestedProperty.Type }}{{ end }}{{ if !nestedProperty.IsRequired }}?{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }{{ if nestedProperty.IsRequired }} = default!;{{ end }}
+    public {{ if nestedProperty.IsCollection }}IEnumerable<{{ if nestedProperty.IsElementTypeComplex }}{{ nestedProperty.ElementType }}QueryResult{{ else }}{{ nestedProperty.ElementType }}{{ end }}>{{ else if nestedProperty.IsComplex }}{{ nestedProperty.Type }}QueryResult{{ else }}{{ nestedProperty.Type }}{{ end }}{{ if !nestedProperty.IsRequired }}{{ end }} {{ nestedProperty.Name.PascalCase }} { get; init; }{{ if nestedProperty.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }

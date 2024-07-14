@@ -16,7 +16,7 @@ public class Create{{ AggregateRoot.Name }}RequestModel
     {{~ if member.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ if member.IsCollection }}IEnumerable<{{ if member.IsElementTypeComplex }}{{ member.ElementType }}RequestModel{{ else }}{{ member.ElementType }}{{ end }}>{{ else if member.IsComplex }}{{ member.Type }}RequestModel{{ else }}{{ member.Type }}{{ end }}{{ if !member.IsRequired }}?{{ end }} {{ member.Name.PascalCase }} { get; set; }{{ if member.IsRequired }} = default!;{{ end }}
+    public {{ if member.IsCollection }}IEnumerable<{{ if member.IsElementTypeComplex }}{{ member.ElementType }}RequestModel{{ else }}{{ member.ElementType }}{{ end }}>{{ else if member.IsComplex }}{{ member.Type }}RequestModel{{ else }}{{ member.Type }}{{ end }}{{ if !member.IsRequired }}{{ end }} {{ member.Name.PascalCase }} { get; set; }{{ if member.IsRequired }} = default!;{{ end }}
 
 {{~ end ~}}
 }
@@ -35,7 +35,7 @@ public class {{ member.Type }}RequestModel
     {{~ if nestedMember.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ if nestedMember.IsCollection }}IEnumerable<{{ if nestedMember.IsElementTypeComplex }}{{ nestedMember.ElementType }}RequestModel{{ else }}{{ nestedMember.ElementType }}{{ end }}>{{ else if nestedMember.IsComplex }}{{ nestedMember.Type }}RequestModel{{ else }}{{ nestedMember.Type }}{{ end }}{{ if !nestedMember.IsRequired }}?{{ end }} {{ nestedMember.Name.PascalCase }} { get; set; }{{ if nestedMember.IsRequired }} = default!;{{ end }}
+    public {{ if nestedMember.IsCollection }}IEnumerable<{{ if nestedMember.IsElementTypeComplex }}{{ nestedMember.ElementType }}RequestModel{{ else }}{{ nestedMember.ElementType }}{{ end }}>{{ else if nestedMember.IsComplex }}{{ nestedMember.Type }}RequestModel{{ else }}{{ nestedMember.Type }}{{ end }}{{ if !nestedMember.IsRequired }}{{ end }} {{ nestedMember.Name.PascalCase }} { get; set; }{{ if nestedMember.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }
@@ -54,7 +54,7 @@ public class {{ member.ElementType }}RequestModel
     {{~ if nestedMember.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ if nestedMember.IsCollection }}IEnumerable<{{ if nestedMember.IsElementTypeComplex }}{{ nestedMember.ElementType }}RequestModel{{ else }}{{ nestedMember.ElementType }}{{ end }}>{{ else if nestedMember.IsComplex }}{{ nestedMember.Type }}RequestModel{{ else }}{{ nestedMember.Type }}{{ end }}{{ if !nestedMember.IsRequired }}?{{ end }} {{ nestedMember.Name.PascalCase }} { get; set; }{{ if nestedMember.IsRequired }} = default!;{{ end }}
+    public {{ if nestedMember.IsCollection }}IEnumerable<{{ if nestedMember.IsElementTypeComplex }}{{ nestedMember.ElementType }}RequestModel{{ else }}{{ nestedMember.ElementType }}{{ end }}>{{ else if nestedMember.IsComplex }}{{ nestedMember.Type }}RequestModel{{ else }}{{ nestedMember.Type }}{{ end }}{{ if !nestedMember.IsRequired }}{{ end }} {{ nestedMember.Name.PascalCase }} { get; set; }{{ if nestedMember.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }

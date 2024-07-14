@@ -16,7 +16,7 @@ public class {{ UseCase.Name }}{{ AggregateRoot.Name }}RequestModel
     {{~ if parameter.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ if parameter.IsCollection }}IEnumerable<{{ if parameter.IsElementTypeComplex }}{{ parameter.ElementType }}RequestModel{{ else }}{{ parameter.ElementType }}{{ end }}>{{ else if parameter.IsComplex }}{{ parameter.Type }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}?{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
+    public {{ if parameter.IsCollection }}IEnumerable<{{ if parameter.IsElementTypeComplex }}{{ parameter.ElementType }}RequestModel{{ else }}{{ parameter.ElementType }}{{ end }}>{{ else if parameter.IsComplex }}{{ parameter.Type }}RequestModel{{ else }}{{ parameter.Type }}{{ end }}{{ if !parameter.IsRequired }}{{ end }} {{ parameter.Name.PascalCase }} { get; set; }{{ if parameter.IsRequired }} = default!;{{ end }}
 
 {{~ end ~}}
 }
@@ -35,7 +35,7 @@ public class {{ parameter.Type }}RequestModel
     {{~ if nestedParameter.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}RequestModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}RequestModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}RequestModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}RequestModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }
@@ -54,7 +54,7 @@ public class {{ parameter.ElementType }}RequestModel
     {{~ if nestedParameter.IsRequired ~}}
     [Required]
     {{~ end ~}}
-    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}RequestModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}RequestModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}?{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
+    public {{ if nestedParameter.IsCollection }}IEnumerable<{{ if nestedParameter.IsElementTypeComplex }}{{ nestedParameter.ElementType }}RequestModel{{ else }}{{ nestedParameter.ElementType }}{{ end }}>{{ else if nestedParameter.IsComplex }}{{ nestedParameter.Type }}RequestModel{{ else }}{{ nestedParameter.Type }}{{ end }}{{ if !nestedParameter.IsRequired }}{{ end }} {{ nestedParameter.Name.PascalCase }} { get; set; }{{ if nestedParameter.IsRequired }} = default!;{{ end }}
 
     {{~ end ~}}
 }

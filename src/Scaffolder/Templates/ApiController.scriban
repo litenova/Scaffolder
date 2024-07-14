@@ -93,7 +93,7 @@ public sealed class {{ AggregateRoot.Name.Plural }}Controller : ControllerBase
 
         _logger.LogInformation("Created new {{ AggregateRoot.Name }} with ID: {Id}", response.Id);
 
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = response.Id }, response);
+        return Created($"/api/{{ AggregateRoot.Name.Plural }}/{response.Id}", response);
     }
 
     /// <summary>
