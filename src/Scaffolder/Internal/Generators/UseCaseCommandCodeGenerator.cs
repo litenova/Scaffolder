@@ -15,9 +15,10 @@ public sealed class UseCaseCommandCodeGenerator : ICodeGenerator
 
             yield return new CodeGenerationSpecification
             {
-                TemplateName = "Command",
+                TemplateName = "UseCaseCommand",
                 TemplateModel = new
                 {
+                    context.DomainProject,
                     context.ApplicationProject,
                     context.AggregateRoot,
                     UseCase = useCase
@@ -27,10 +28,10 @@ public sealed class UseCaseCommandCodeGenerator : ICodeGenerator
 
             yield return new CodeGenerationSpecification
             {
-                TemplateName = "CommandHandler",
+                TemplateName = "UseCaseCommandHandler",
                 TemplateModel = new
                 {
-                    DomainProject = context.ApplicationProject,
+                    context.DomainProject,
                     context.ApplicationProject,
                     context.AggregateRoot,
                     UseCase = useCase,
@@ -41,9 +42,10 @@ public sealed class UseCaseCommandCodeGenerator : ICodeGenerator
 
             yield return new CodeGenerationSpecification
             {
-                TemplateName = "CommandValidator",
+                TemplateName = "UseCaseCommandValidator",
                 TemplateModel = new
                 {
+                    context.DomainProject,
                     context.ApplicationProject,
                     context.AggregateRoot,
                     UseCase = useCase

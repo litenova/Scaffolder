@@ -142,9 +142,16 @@ public sealed class MemberDescriptor
         var (isComplex, isCollection, elementType, isElementTypeComplex) = AnalyzeType(propertySymbol.Type);
         var nestedMembers = isComplex ? ExtractNestedMembers(propertySymbol.Type, logger) : [];
 
+        string GetSimpleTypeName(ITypeSymbol type)
+        {
+            var fullTypeName = type.ToString() ?? throw new InvalidOperationException($"Unable to determine type for property {propertySymbol.Name}");
+            var lastDotIndex = fullTypeName.LastIndexOf('.');
+            return lastDotIndex >= 0 ? fullTypeName[(lastDotIndex + 1)..] : fullTypeName;
+        }
+
         var descriptor = new MemberDescriptor(
             propertySymbol.Name,
-            propertySymbol.Type.ToString() ?? throw new InvalidOperationException($"Unable to determine type for property {propertySymbol.Name}"),
+            GetSimpleTypeName(propertySymbol.Type),
             propertySymbol.IsRequired,
             isComplex,
             isCollection,

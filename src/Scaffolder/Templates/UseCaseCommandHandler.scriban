@@ -48,7 +48,7 @@ internal sealed class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler :
     {
         _logger.LogInformation("Executing {{ UseCase.Name }} command for {{ AggregateRoot.Name }} with ID: {Id}", command.Id);
 
-        var {{ AggregateRoot.Name.CamelCase }} = await _repository.GetAsync(command.Id, cancellationToken);
+        var {{ AggregateRoot.Name.CamelCase }} = await _repository.GetByIdAsync(command.Id, cancellationToken);
 
         {{ AggregateRoot.Name.CamelCase }}.{{ UseCase.Name }}(
             {{~ for parameter in UseCase.Parameters ~}}
@@ -62,7 +62,7 @@ internal sealed class {{ UseCase.Name }}{{ AggregateRoot.Name }}CommandHandler :
             {{~ end ~}}
         );
 
-        await _repository.UpdateAsync({{ AggregateRoot.Name.CamelCase }}, cancellationToken);
+        await _repository.UpdateAsync({{ AggregateRoot.Name.CamelCase }}, {{ AggregateRoot.Name.CamelCase }}, cancellationToken);
         
         _logger.LogInformation("Successfully executed {{ UseCase.Name }} command for {{ AggregateRoot.Name }} with ID: {Id}", command.Id);
     }

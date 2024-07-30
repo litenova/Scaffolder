@@ -37,19 +37,4 @@
         </EmbeddedResource>
     </ItemGroup>
 
-    <Target Name="CombineScribanTemplates" BeforeTargets="BeforeBuild" Condition="'$(Configuration)' == 'Debug'">
-        <PropertyGroup>
-            <CombinedTemplatesPath>$(MSBuildProjectDirectory)\Templates\CombinedTemplates.txt</CombinedTemplatesPath>
-            <ScriptPath>$(MSBuildProjectDirectory)\Scripts\CombineTemplates.ps1</ScriptPath>
-        </PropertyGroup>
-
-        <!-- Clear the file if it exists -->
-        <Delete Files="$(CombinedTemplatesPath)"/>
-        <Message Text="Deleted existing CombinedTemplates.txt if it existed." Importance="high"/>
-
-        <!-- Execute PowerShell script -->
-        <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(ScriptPath)&quot; -TemplatesDir &quot;$(MSBuildProjectDirectory)\Templates&quot; -OutputFile &quot;$(CombinedTemplatesPath)&quot;"/>
-
-        <Message Text="Combined Scriban templates into $(CombinedTemplatesPath)" Importance="high"/>
-    </Target>
 </Project>
