@@ -1,6 +1,8 @@
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Scaffolder.Abstractions;
+using Scaffolder.Specifications.Utilities;
 
 namespace Scaffolder.Specifications;
 
@@ -153,6 +155,70 @@ internal sealed class MemberSpecification : IMemberSpecification
     public string XmlDocumentation => _symbol?.GetDocumentationCommentXml() ?? string.Empty;
 
     /// <summary>
+    /// Lazy loading container for derived type analysis.
+    /// Only performs the expensive operation of finding derived types when actually needed.
+    /// </summary>
+    private readonly Lazy<IImmutableSet<ITypeSpecification>> _derivedTypes;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Indicates whether the type is abstract.
+    /// Examples:
+    /// - Abstract base classes (e.g., PersonalizationField)
+    /// - Abstract records (e.g., PersonalizationTemplateState)
+    /// Used for:
+    /// - Determining if concrete implementations are needed
+    /// - Generating appropriate type declarations
+    /// - Handling inheritance hierarchies
+    /// </remarks>
+    public bool IsAbstract { get; }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Indicates whether the type is sealed.
+    /// Examples:
+    /// - Sealed classes (e.g., EmailPersonalizationField)
+    /// - Sealed records (e.g., PersonalizationTemplateActiveState)
+    /// Used for:
+    /// - Determining if inheritance should be prevented
+    /// - Generating appropriate type modifiers
+    /// </remarks>
+    public bool IsSealed { get; }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The base type specification if this type inherits from a domain type.
+    /// Examples:
+    /// - PersonalizationField for EmailPersonalizationField
+    /// - PersonalizationTemplateScope for PersonalizationTemplateEventScope
+    /// Null for:
+    /// - Types that don't inherit from domain types
+    /// - Types that only inherit from system types
+    /// Used for:
+    /// - Generating inheritance declarations
+    /// - Creating type hierarchies
+    /// - Handling polymorphic behavior
+    /// </remarks>
+    public ITypeSpecification? BaseType { get; }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The set of types that derive from this type.
+    /// Only populated for abstract types.
+    /// Examples:
+    /// For PersonalizationField:
+    /// - EmailPersonalizationField
+    /// - DatePersonalizationField
+    /// - TextPersonalizationField
+    /// etc.
+    /// Used for:
+    /// - Generating type factories
+    /// - Handling polymorphic serialization
+    /// - Creating type mapping logic
+    /// </remarks>
+    public IImmutableSet<ITypeSpecification> DerivedTypes => _derivedTypes.Value;
+
+    /// <summary>
     /// Initializes a new instance from a property symbol.
     /// Used when analyzing properties of aggregate roots, entities, or value objects.
     /// </summary>
@@ -247,6 +313,14 @@ internal sealed class MemberSpecification : IMemberSpecification
 
         // Initialize lazy loading of nested members
         _nestedMembers = new Lazy<IImmutableSet<IMemberSpecification>?>(AnalyzeNestedMembers);
+
+        // Initialize type hierarchy information
+        IsAbstract = type.IsAbstract;
+        IsSealed = type.IsSealed;
+        BaseType = GetBaseType(type);
+
+        // Initialize lazy loading of derived types
+        _derivedTypes = new Lazy<IImmutableSet<ITypeSpecification>>(() => AnalyzeDerivedTypes(type));
 
         Logger.Debug($"Created member specification: {this}");
     }
@@ -375,6 +449,102 @@ internal sealed class MemberSpecification : IMemberSpecification
     }
 
     /// <summary>
+    /// Gets the base type specification if the type inherits from a domain type.
+    /// </summary>
+    /// <param name="type">The type to analyze</param>
+    /// <returns>Base type specification or null if no relevant base type exists</returns>
+    private ITypeSpecification? GetBaseType(ITypeSymbol type)
+    {
+        if (type is INamedTypeSymbol namedType &&
+            namedType.BaseType != null &&
+            namedType.BaseType.SpecialType == SpecialType.None &&
+            !IsSystemType(namedType.BaseType))
+        {
+            return new TypeSpecification(namedType.BaseType);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Analyzes and finds all types that derive from the given type.
+    /// </summary>
+    /// <param name="type">The type to find derivatives of</param>
+    /// <returns>Set of derived type specifications</returns>
+    private IImmutableSet<ITypeSpecification> AnalyzeDerivedTypes(ITypeSymbol type)
+    {
+        if (!IsAbstract || _semanticModel?.Compilation == null)
+        {
+            return ImmutableHashSet<ITypeSpecification>.Empty;
+        }
+
+        Logger.Debug($"Analyzing derived types for: {type.Name}");
+
+        var derivedTypes = new HashSet<ITypeSpecification>();
+
+        // Search through all syntax trees in the compilation
+        foreach (var syntaxTree in _semanticModel.Compilation.SyntaxTrees)
+        {
+            var semanticModel = _semanticModel.Compilation.GetSemanticModel(syntaxTree);
+
+            // Find all type declarations
+            var typeDeclarations = syntaxTree.GetRoot()
+                .DescendantNodes()
+                .OfType<TypeDeclarationSyntax>();
+
+            foreach (var typeDecl in typeDeclarations)
+            {
+                var derivedType = semanticModel.GetDeclaredSymbol(typeDecl) as INamedTypeSymbol;
+                if (derivedType != null && InheritsFrom(derivedType, type))
+                {
+                    derivedTypes.Add(new TypeSpecification(derivedType));
+                }
+            }
+        }
+
+        var result = derivedTypes.ToImmutableHashSet();
+        Logger.Debug($"Found {result.Count} derived types for {type.Name}");
+        return result;
+    }
+
+    /// <summary>
+    /// Determines if a type inherits from another type.
+    /// </summary>
+    /// <param name="type">The type to check</param>
+    /// <param name="possibleBaseType">The potential base type</param>
+    /// <returns>True if type inherits from possibleBaseType</returns>
+    private static bool InheritsFrom(INamedTypeSymbol type, ITypeSymbol possibleBaseType)
+    {
+        var current = type.BaseType;
+        while (current != null)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, possibleBaseType))
+                return true;
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines if a type is from the System namespace.
+    /// </summary>
+    /// <param name="type">The type to check</param>
+    /// <returns>True if the type is from the System namespace</returns>
+    private static bool IsSystemType(ITypeSymbol type)
+    {
+        var current = type;
+        while (current != null)
+        {
+            if (current.ContainingNamespace?.Name == "System")
+                return true;
+            current = current.ContainingNamespace?.ContainingSymbol as ITypeSymbol;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Creates a string representation of the member specification.
     /// Useful for debugging and logging purposes.
     /// </summary>
@@ -385,6 +555,16 @@ internal sealed class MemberSpecification : IMemberSpecification
             ? $"IEnumerable<{ElementType?.Name ?? "unknown"}>"
             : Type.Name;
 
-        return $"{Name}: {typeDescription}{(IsRequired ? " (required)" : string.Empty)}";
+        var modifiers = new[]
+            {
+                IsAbstract ? "abstract" : null,
+                IsSealed ? "sealed" : null
+            }.Where(m => m != null)
+            .ToList();
+
+        var baseTypeInfo = BaseType != null ? $" : {BaseType.Name}" : "";
+        var modifiersString = modifiers.Count != 0 ? $"{string.Join(" ", modifiers)} " : "";
+
+        return $"{Name}: {modifiersString}{typeDescription}{baseTypeInfo}{(IsRequired ? " (required)" : string.Empty)}";
     }
 }

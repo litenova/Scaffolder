@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CliFx"/>
+        <PackageReference Include="Microsoft.Build.Locator"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Scaffolder.Specifications.Abstractions\Scaffolder.Specifications.Abstractions.csproj"/>
+        <ProjectReference Include="..\Scaffolder.Specifications.Serialization\Scaffolder.Specifications.Serialization.csproj" />
+        <ProjectReference Include="..\Scaffolder.Specifications\Scaffolder.Specifications.csproj"/>
+    </ItemGroup>
+
+</Project>

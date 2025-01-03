@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Scaffolder.Abstractions;
+using Scaffolder.Specifications.Utilities;
 
 namespace Scaffolder.Specifications;
 

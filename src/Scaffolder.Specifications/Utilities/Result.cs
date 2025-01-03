@@ -1,4 +1,4 @@
-namespace Scaffolder.Specifications;
+namespace Scaffolder.Specifications.Utilities;
 
 /// <summary>
 /// Represents the result of an operation that can either succeed with a value or fail with an error message.

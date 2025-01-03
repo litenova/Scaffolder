@@ -1,6 +1,7 @@
 using Scaffolder.Abstractions;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
+using Scaffolder.Specifications.Utilities;
 
 namespace Scaffolder.Specifications;
 

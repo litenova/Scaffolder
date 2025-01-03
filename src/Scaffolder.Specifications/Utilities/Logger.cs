@@ -1,10 +1,10 @@
-namespace Scaffolder.Specifications;
+namespace Scaffolder.Specifications.Utilities;
 
 /// <summary>
 /// Static logger for specifications library.
 /// Gets configured by the host application (CLI in this case).
 /// </summary>
-internal static class Logger
+public static class Logger
 {
     private static Action<string> _info = _ => { };
     private static Action<string> _warning = _ => { };

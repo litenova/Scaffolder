@@ -1,9 +1,9 @@
 using Scaffolder.Abstractions;
+using Scaffolder.Specifications.Utilities;
 
 namespace Scaffolder.Specifications;
 
 using Microsoft.CodeAnalysis;
-using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis.MSBuild;
 using System.Collections.Immutable;
 
@@ -11,7 +11,7 @@ using System.Collections.Immutable;
 /// Implementation of <see cref="ISolutionSpecification"/> that uses Roslyn API to analyze a solution.
 /// This class provides access to solution-level information and its projects for code generation purposes.
 /// </summary>
-internal sealed class SolutionSpecification : ISolutionSpecification
+public sealed class SolutionSpecification : ISolutionSpecification
 {
     // Roslyn's Solution object containing the semantic model of the solution
     private readonly Solution _solution;
@@ -80,7 +80,7 @@ internal sealed class SolutionSpecification : ISolutionSpecification
         try
         {
             // Register MSBuild instance to ensure Roslyn can find the build tools
-            MSBuildLocator.RegisterDefaults();
+            MSBuildInitializer.Initialize();
 
             // Create MSBuild workspace to load the solution
             var workspace = MSBuildWorkspace.Create();
